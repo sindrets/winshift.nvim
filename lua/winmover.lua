@@ -122,6 +122,7 @@ function M.swap_leaves(a, b)
   api.nvim_win_close(temp_b, true)
 end
 
+---Move a row into a target window, replacing the target.
 ---@param row Node
 ---@param target integer Window id
 ---@param ignore table<integer, boolean>
@@ -143,6 +144,7 @@ function M.move_row(row, target, ignore)
   api.nvim_win_close(target, true)
 end
 
+---Move a column into a target window, replacing the target.
 ---@param col Node
 ---@param target integer Window id
 ---@param ignore table<integer, boolean>
@@ -164,6 +166,7 @@ function M.move_col(col, target, ignore)
   api.nvim_win_close(target, true)
 end
 
+---Move a leaf out of a row in a given direction.
 ---@param leaf Node
 ---@param row Node
 ---@param dir '"up"'|'"down"'
@@ -177,6 +180,7 @@ function M.row_move_out(leaf, row, dir)
   M.move_row(row, tempwin, { [leaf.winid] = true })
 end
 
+---Move a leaf out of a column in a given direction.
 ---@param leaf Node
 ---@param col Node
 ---@param dir '"left"'|'"right"'
@@ -190,6 +194,7 @@ function M.col_move_out(leaf, col, dir)
   M.move_col(col, tempwin, { [leaf.winid] = true })
 end
 
+---Move a leaf into a row.
 ---@param leaf Node
 ---@param row Node
 ---@param dir '"left"'|'"right"'
@@ -207,6 +212,7 @@ function M.row_move_in(leaf, row, dir)
   M.move_row(row, tempwin)
 end
 
+---Move a leaf into a column.
 ---@param leaf Node
 ---@param col Node
 ---@param dir '"up"'|'"down"'
@@ -224,6 +230,8 @@ function M.col_move_in(leaf, col, dir)
   M.move_col(col, tempwin)
 end
 
+---Get the next node in a given direction in the given leaf's closest row
+---parent. Returns `nil` if there's no node in the given direction.
 ---@param leaf Node
 ---@param dir '"left"'|'"right"'
 ---@return Node|nil
@@ -245,6 +253,8 @@ function M.next_node_horizontal(leaf, dir)
   end
 end
 
+---Get the next node in a given direction in the given leaf's closest column
+---parent. Returns `nil` if there's no node in the given direction.
 ---@param leaf Node
 ---@param dir '"up"'|'"down"'
 ---@return Node|nil
