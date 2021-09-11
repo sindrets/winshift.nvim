@@ -407,16 +407,21 @@ function M.start_move_mode()
   M.highlight_win(cur_win)
   vim.cmd("redraw")
 
-  while not (char == "q" or raw == esc) do
-    api.nvim_echo({{ "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" }}, false, {})
-    char, raw = utils.input_char(nil, true)
-    local dir = M.key_dir_map[char or raw]
-    if dir then
-      M.move_win(cur_win, dir)
-      vim.cmd("redraw")
+  local ok = pcall(function()
+    while not (char == "q" or raw == esc) do
+      api.nvim_echo({{ "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" }}, false, {})
+      char, raw = utils.input_char(nil, true)
+      local dir = M.key_dir_map[char or raw]
+      if dir then
+        M.move_win(cur_win, dir)
+        vim.cmd("redraw")
+      end
     end
-  end
+  end)
 
+  if not ok then
+    utils.clear_prompt()
+  end
   vim.wo[cur_win].winhl = lasthl
 end
 
