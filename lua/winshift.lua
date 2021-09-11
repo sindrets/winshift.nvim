@@ -1,4 +1,5 @@
 local utils = require("winshift.utils")
+local colors = require("winshift.colors")
 local api = vim.api
 local M = {}
 
@@ -7,7 +8,6 @@ local M = {}
 ---@field type '"leaf"'|'"row"'|'"col"'
 ---@field parent Node
 ---@field index integer
----@field bufid integer
 ---@field winid integer|nil
 
 ---@class VirtualNode
@@ -16,7 +16,6 @@ local M = {}
 ---@field target Node
 ---@field parent Node
 ---@field index integer
----@field bufid integer
 ---@field winid integer|nil
 
 M.key_dir_map = {
@@ -37,7 +36,6 @@ function M.process_layout(layout)
 
     if node.type == "leaf" then
       node.winid = parent[2]
-      node.bufid = api.nvim_win_get_buf(node.winid)
     else
       for i, child in ipairs(parent[2]) do
         node[#node+1] = recurse(child)
@@ -335,11 +333,9 @@ function M.move_win(winid, dir)
         local set
         if target_leaf.parent.type == "col" then
           set = M.create_virtual_set(target_leaf)
-          -- print("hori set:", vim.inspect(set))
         end
 
         if set or target_leaf.parent.type == "col" then
-          -- print("col move out 1")
           target_leaf = (set and set.target) or target_leaf
           M.col_move_out(target_leaf, target_leaf.parent, dir)
         else
@@ -355,11 +351,9 @@ function M.move_win(winid, dir)
               -- Swap the windows
               M.swap_leaves(target_leaf.parent[1], target_leaf.parent[2])
             else
-              -- print(vim.inspect(next_node, {depth = 2}))
               M.col_move_in(target_leaf, next_node, dir)
             end
           elseif outer_parent.type == "col" then
-            -- print("col move out 2")
             M.col_move_out(target_leaf, outer_parent, dir)
           end
         end
@@ -368,7 +362,6 @@ function M.move_win(winid, dir)
         local set
         if target_leaf.parent.type == "row" then
           set = M.create_virtual_set(target_leaf)
-          -- print("vert set:", vim.inspect(set))
         end
 
         if set or target_leaf.parent.type == "row" then
@@ -384,9 +377,10 @@ function M.move_win(winid, dir)
               and target_leaf.parent[1].type == "leaf"
               and target_leaf.parent[2].type == "leaf"
               ) then
+              -- Swap the windows
               M.swap_leaves(target_leaf.parent[1], target_leaf.parent[2])
             else
-            M.row_move_in(target_leaf, next_node, dir)
+              M.row_move_in(target_leaf, next_node, dir)
             end
           elseif outer_parent.type == "row" then
             M.row_move_out(target_leaf, outer_parent, dir)
@@ -408,6 +402,10 @@ function M.start_move_mode()
   local char, raw
   local esc = utils.raw_key("<esc>")
   local cur_win = api.nvim_get_current_win()
+  local lasthl = vim.wo[cur_win].winhl
+
+  M.highlight_win(cur_win)
+  vim.cmd("redraw")
 
   while not (char == "q" or raw == esc) do
     api.nvim_echo({{ "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" }}, false, {})
@@ -418,7 +416,23 @@ function M.start_move_mode()
       vim.cmd("redraw")
     end
   end
+
+  vim.wo[cur_win].winhl = lasthl
 end
+
+function M.highlight_win(winid)
+  local curhl = vim.wo[winid].winhl
+  vim.wo[winid].winhl = table.concat({
+      "Normal:WinShiftNormal",
+      "LineNr:WinShiftLineNr",
+      "CursorLineNr:WinShiftCursorLineNr",
+      "SignColumn:WinShiftSignColumn",
+      "FoldColumn:WinShiftFoldColumn",
+      curhl ~= "" and curhl or nil
+    }, ",")
+end
+
+colors.setup()
 
 _G.WinShift = M
 return M
