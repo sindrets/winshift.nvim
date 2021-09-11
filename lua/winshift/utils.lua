@@ -25,6 +25,27 @@ function M.err(msg)
   vim.cmd("echohl None")
 end
 
+---Escape a string for use as a pattern.
+---@param s string
+---@return string
+function M.pattern_esc(s)
+  local result = string.gsub(s, "[%(|%)|%%|%[|%]|%-|%.|%?|%+|%*|%^|%$]", {
+    ["%"] = "%%",
+    ["-"] = "%-",
+    ["("] = "%(",
+    [")"] = "%)",
+    ["."] = "%.",
+    ["["] = "%[",
+    ["]"] = "%]",
+    ["?"] = "%?",
+    ["+"] = "%+",
+    ["*"] = "%*",
+    ["^"] = "%^",
+    ["$"] = "%$",
+  })
+  return result
+end
+
 ---Create a shallow copy of a portion of a list.
 ---@param t table
 ---@param first integer First index, inclusive

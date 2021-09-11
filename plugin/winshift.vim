@@ -1,6 +1,13 @@
 if !has('nvim-0.5') || exists('g:winshift_nvim_loaded') | finish | endif
 
-command! WinShift lua require("winshift").start_move_mode()
+command! -complete=customlist,s:completion -nargs=? WinShift lua require("winshift").cmd_winshift(<f-args>)
+
+function s:completion(argLead, cmdLine, curPos)
+    return luaeval("require('winshift').completion("
+                \ . "vim.fn.eval('a:argLead'),"
+                \ . "vim.fn.eval('a:cmdLine'),"
+                \ . "vim.fn.eval('a:curPos'))")
+endfunction
 
 nnoremap <silent> <C-W><C-M> <Cmd>WinShift<CR>
 nnoremap <silent> <C-W>m <Cmd>WinShift<CR>
