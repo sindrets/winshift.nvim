@@ -97,6 +97,31 @@ function M.find_leaf(tree, winid)
   return recurse(tree)
 end
 
+---@param a Node
+---@param b Node
+function M.swap_leaves(a, b)
+  vim.cmd(string.format(
+    "noautocmd keepjumps %dwindo belowright %s",
+    api.nvim_win_get_number(a.winid),
+    a.parent.type == "col" and "vsp" or "sp"
+  ))
+  local temp_a = api.nvim_get_current_win()
+  local opt_a = { vertical = a.parent.type == "col", rightbelow = false }
+
+  vim.cmd(string.format(
+    "noautocmd keepjumps %dwindo belowright %s",
+    api.nvim_win_get_number(b.winid),
+    b.parent.type == "col" and "vsp" or "sp"
+  ))
+  local temp_b = api.nvim_get_current_win()
+  local opt_b = { vertical = b.parent.type == "col", rightbelow = false }
+
+  vim.fn.win_splitmove(a.winid, temp_b, opt_b)
+  vim.fn.win_splitmove(b.winid, temp_a, opt_a)
+  api.nvim_win_close(temp_a, true)
+  api.nvim_win_close(temp_b, true)
+end
+
 ---@param row Node
 ---@param target integer Window id
 ---@param ignore table<integer, boolean>
@@ -290,36 +315,48 @@ function M.move_win(winid, dir)
   local target_leaf = M.find_leaf(tree, winid)
   local outer_parent = (target_leaf.parent and target_leaf.parent.parent) or {}
 
-  if target_leaf then
+  -- If the target leaf has no parent, there is only one window in the layout.
+  if target_leaf and target_leaf.parent then
     vim.opt.eventignore = "WinEnter,WinLeave,WinNew,WinClosed,BufEnter,BufLeave"
 
     local ok, err = pcall(function()
       if dir == "left" or dir == "right" then
         -- Horizontal
         local set
-        if target_leaf.parent and target_leaf.parent.type == "col" then
+        if target_leaf.parent.type == "col" then
           set = M.create_virtual_set(target_leaf)
           -- print("hori set:", vim.inspect(set))
         end
 
         if set or target_leaf.parent.type == "col" then
-          print("col move out 1")
+          -- print("col move out 1")
           target_leaf = (set and set.target) or target_leaf
           M.col_move_out(target_leaf, target_leaf.parent, dir)
         else
           local next_node = M.next_node_horizontal(target_leaf, dir)
           if next_node then
-            print(vim.inspect(next_node, {depth = 2}))
-            M.col_move_in(target_leaf, next_node, dir)
+            if (
+              target_leaf.parent.type == "row"
+              and #target_leaf.parent == 2
+              and #outer_parent > 1
+              and target_leaf.parent[1].type == "leaf"
+              and target_leaf.parent[2].type == "leaf"
+              ) then
+              -- Swap the windows
+              M.swap_leaves(target_leaf.parent[1], target_leaf.parent[2])
+            else
+              -- print(vim.inspect(next_node, {depth = 2}))
+              M.col_move_in(target_leaf, next_node, dir)
+            end
           elseif outer_parent.type == "col" then
-            print("col move out 2")
+            -- print("col move out 2")
             M.col_move_out(target_leaf, outer_parent, dir)
           end
         end
       else
         -- Vertical
         local set
-        if target_leaf.parent and target_leaf.parent.type == "row" then
+        if target_leaf.parent.type == "row" then
           set = M.create_virtual_set(target_leaf)
           -- print("vert set:", vim.inspect(set))
         end
@@ -330,7 +367,17 @@ function M.move_win(winid, dir)
         else
           local next_node = M.next_node_vertical(target_leaf, dir)
           if next_node then
+            if (
+              target_leaf.parent.type == "col"
+              and #target_leaf.parent == 2
+              and #outer_parent > 1
+              and target_leaf.parent[1].type == "leaf"
+              and target_leaf.parent[2].type == "leaf"
+              ) then
+              M.swap_leaves(target_leaf.parent[1], target_leaf.parent[2])
+            else
             M.row_move_in(target_leaf, next_node, dir)
+            end
           elseif outer_parent.type == "row" then
             M.row_move_out(target_leaf, outer_parent, dir)
           end
@@ -342,6 +389,7 @@ function M.move_win(winid, dir)
     api.nvim_set_current_win(winid)
     if not ok then
       utils.err(err)
+      utils.err(debug.traceback())
     end
   end
 end
@@ -361,24 +409,6 @@ function M.start_move_mode()
     end
   end
 end
-
-M._test_layout = {
-  "row", {
-    { "leaf", 1002 },
-    { "leaf", 1000 },
-    {
-      "col", {
-        { "leaf", 1008 },
-        {
-          "row", {
-            { "leaf", 1009 },
-            { "leaf", 1010 }
-          }
-        }
-      }
-    }
-  }
-}
 
 _G.WinMover = M
 return M
