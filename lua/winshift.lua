@@ -1,4 +1,4 @@
-local utils = require("winmover.utils")
+local utils = require("winshift.utils")
 local api = vim.api
 local M = {}
 
@@ -420,5 +420,5 @@ function M.start_move_mode()
   end
 end
 
-_G.WinMover = M
+_G.WinShift = M
 return M

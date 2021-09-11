@@ -9,19 +9,19 @@ end
 
 function M.info(msg)
   vim.cmd("echohl Directory")
-  M._echo_multiline("[winmover.nvim] " .. msg)
+  M._echo_multiline("[WinShift.nvim] " .. msg)
   vim.cmd("echohl None")
 end
 
 function M.warn(msg)
   vim.cmd("echohl WarningMsg")
-  M._echo_multiline("[winmover.nvim] " .. msg)
+  M._echo_multiline("[WinShift.nvim] " .. msg)
   vim.cmd("echohl None")
 end
 
 function M.err(msg)
   vim.cmd("echohl ErrorMsg")
-  M._echo_multiline("[winmover.nvim] " .. msg)
+  M._echo_multiline("[WinShift.nvim] " .. msg)
   vim.cmd("echohl None")
 end
 
