@@ -4,10 +4,11 @@ local M = {}
 -- stylua: ignore start
 M.defaults = {
   highlight_moving_win = true,
+  focused_hl_group = "Visual",
   moving_win_options = {
+    wrap = false,
     cursorline = false,
     colorcolumn = "",
-    wrap = false,
   }
 }
 -- stylua: ignore end
@@ -25,6 +26,8 @@ function M.setup(user_config)
   M._config = vim.tbl_deep_extend("force", M._config, user_config)
 
   M._config.moving_win_options = user_config.moving_win_options or M._config.moving_win_options
+
+  require("winshift.colors").setup()
 end
 
 return M

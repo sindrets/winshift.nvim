@@ -1,3 +1,4 @@
+local config = require("winshift.config")
 local a = vim.api
 local M = {}
 
@@ -42,12 +43,14 @@ function M.get_colors()
 end
 
 function M.get_hl_groups()
+  local focused_bg = M.get_bg(config.get_config().focused_hl_group) or "Visual"
+
   return {
-    Normal = { bg = M.get_bg("Visual") },
-    LineNr = { fg = M.get_fg("LineNr"), bg = M.get_bg("Visual"), gui = M.get_gui("LineNr") },
-    CursorLineNr = { fg = M.get_fg("CursorLineNr"), bg = M.get_bg("Visual"), gui = M.get_gui("CursorLineNr") },
-    SignColumn = { fg = M.get_fg("SignColumn"), bg = M.get_bg("Visual") },
-    FoldColumn = { fg = M.get_fg("FoldColumn"), bg = M.get_bg("Visual") },
+    Normal = { bg = focused_bg },
+    LineNr = { fg = M.get_fg("LineNr"), bg = focused_bg, gui = M.get_gui("LineNr") },
+    CursorLineNr = { fg = M.get_fg("CursorLineNr"), bg = focused_bg, gui = M.get_gui("CursorLineNr") },
+    SignColumn = { fg = M.get_fg("SignColumn"), bg = focused_bg },
+    FoldColumn = { fg = M.get_fg("FoldColumn"), bg = focused_bg },
   }
 end
 
@@ -55,10 +58,13 @@ M.hl_links = {}
 
 function M.setup()
   for name, v in pairs(M.get_hl_groups()) do
-    local fg = v.fg and " guifg=" .. v.fg or ""
-    local bg = v.bg and " guibg=" .. v.bg or ""
-    local gui = v.gui and " gui=" .. v.gui or ""
-    vim.cmd("hi def WinShift" .. name .. fg .. bg .. gui)
+    vim.cmd(string.format(
+      "hi WinShift%s %s %s %s",
+      name,
+      v.fg and "guifg=" .. v.fg or "",
+      v.bg and "guibg=" .. v.bg or "",
+      v.gui and "gui=" .. v.gui or ""
+    ))
   end
 
   for from, to in pairs(M.hl_links) do

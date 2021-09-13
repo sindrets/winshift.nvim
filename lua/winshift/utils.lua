@@ -181,19 +181,29 @@ function M.clear_prompt()
   vim.cmd("norm! :esc<CR>")
 end
 
-function M.input_char(prompt, allow_non_ascii)
+function M.input_char(prompt, opt)
+  opt = vim.tbl_extend("keep", opt or {}, {
+    clear_prompt = true,
+    allow_non_ascii = false
+  })
+
   if prompt then
     vim.api.nvim_echo({ { prompt } }, false, {})
   end
+
   local c
-  if not allow_non_ascii then
+  if not opt.allow_non_ascii then
     while type(c) ~= "number" do
       c = vim.fn.getchar()
     end
   else
     c = vim.fn.getchar()
   end
-  M.clear_prompt()
+
+  if opt.clear_prompt then
+    M.clear_prompt()
+  end
+
   local s = type(c) == "number" and vim.fn.nr2char(c) or nil
   local raw = type(c) == "number" and s or c
   return s, raw

@@ -1,5 +1,4 @@
 local utils = require("winshift.utils")
-local colors = require("winshift.colors")
 local config = require("winshift.config")
 local lib = require("winshift.lib")
 local api = vim.api
@@ -34,6 +33,6 @@ function M.completion(arg_lead, cmd_line, cur_pos)
   return filter_completion(arg_lead, completion_dir)
 end
 
-colors.setup()
+config.setup({})
 
 return M
