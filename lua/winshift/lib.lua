@@ -339,7 +339,7 @@ end
 ---@param winid integer
 ---@param dir Direction
 function M.move_win(winid, dir)
-  if vim.tbl_contains({ "far_left", "far_right", "far_up", "far_down" }, dir) then
+  if M.dir_move_map[dir] then
     vim.cmd(string.format("%dwincmd %s", api.nvim_win_get_number(winid), M.dir_move_map[dir]))
     return
   end
@@ -350,9 +350,7 @@ function M.move_win(winid, dir)
 
   -- If the target leaf has no parent, there is only one window in the layout.
   if target_leaf and target_leaf.parent then
-    vim.opt.eventignore = "WinEnter,WinLeave,WinNew,WinClosed,BufEnter,BufLeave"
-
-    local ok, err = pcall(function()
+    local ok, err = utils.no_win_event_call(function()
       if dir == "left" or dir == "right" then
         -- Horizontal
         local set
@@ -414,7 +412,6 @@ function M.move_win(winid, dir)
       end
     end)
 
-    vim.opt.eventignore = ""
     api.nvim_set_current_win(winid)
     if not ok then
       utils.err(err)
