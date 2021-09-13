@@ -1,10 +1,15 @@
 local utils = require("winshift.utils")
 local colors = require("winshift.colors")
+local config = require("winshift.config")
 local lib = require("winshift.lib")
 local api = vim.api
 local M = {}
 
 local completion_dir = { "left", "right", "up", "down" }
+
+function M.setup(user_config)
+  config.setup(user_config or {})
+end
 
 function M.cmd_winshift(dir)
   if dir then

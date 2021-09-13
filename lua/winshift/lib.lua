@@ -1,6 +1,8 @@
 local utils = require("winshift.utils")
+local config = require("winshift.config")
 local api = vim.api
 local M = {}
+local win_option_store  = {}
 
 ---@class Node
 ---@type table<integer, Node>
@@ -402,8 +404,15 @@ function M.start_move_mode()
   local esc = utils.raw_key("<esc>")
   local cur_win = api.nvim_get_current_win()
   local lasthl = vim.wo[cur_win].winhl
+  local conf = config.get_config()
+  M.save_win_options(cur_win)
 
-  M.highlight_win(cur_win)
+  if conf.highlight_moving_win then
+    M.highlight_win(cur_win)
+  end
+  for option, value in pairs(conf.moving_win_options) do
+    utils.set_local(cur_win, option, value)
+  end
   vim.cmd("redraw")
 
   local ok = pcall(function()
@@ -421,7 +430,37 @@ function M.start_move_mode()
   if not ok then
     utils.clear_prompt()
   end
-  vim.wo[cur_win].winhl = lasthl
+
+  if conf.highlight_moving_win then
+    vim.wo[cur_win].winhl = lasthl
+  end
+
+  M.restore_win_options(cur_win)
+end
+
+function M.save_win_options(winid)
+  win_option_store[winid] = {}
+  local last_winid = api.nvim_get_current_win()
+  utils.no_win_event_call(function()
+    api.nvim_set_current_win(winid)
+    for option, _ in pairs(config.get_config().moving_win_options) do
+      local value = vim.opt_local[option]._value
+      if value ~= "" then
+        win_option_store[winid][option] = value
+      end
+    end
+  end)
+  api.nvim_set_current_win(last_winid)
+end
+
+function M.restore_win_options(winid)
+  for option, _ in pairs(config.get_config().moving_win_options) do
+    if win_option_store[winid][option] then
+      utils.set_local(winid, option, win_option_store[winid][option])
+    else
+      utils.unset_local(winid, option)
+    end
+  end
 end
 
 function M.highlight_win(winid)

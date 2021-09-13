@@ -25,6 +25,17 @@ function M.err(msg)
   vim.cmd("echohl None")
 end
 
+function M.no_win_event_call(cb)
+  local last = vim.opt.eventignore._value
+  vim.opt.eventignore = (
+    "WinEnter,WinLeave,WinNew,WinClosed,BufEnter,BufLeave"
+    .. (last ~= "" and "," .. last or "")
+  )
+  local ok, err = pcall(cb)
+  vim.opt.eventignore = last
+  return ok, err
+end
+
 ---Escape a string for use as a pattern.
 ---@param s string
 ---@return string
@@ -201,6 +212,67 @@ end
 
 function M.raw_key(vim_key)
   return api.nvim_eval(string.format([["\%s"]], vim_key))
+end
+
+---HACK: workaround for inconsistent behavior from `vim.opt_local`.
+---@see [Neovim issue](https://github.com/neovim/neovim/issues/14670)
+---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).
+---@param option string
+---@param value string[]|string
+---@param opt table
+function M.set_local(winids, option, value, opt)
+  local last_winid = api.nvim_get_current_win()
+  local rhs
+  opt = vim.tbl_extend("keep", opt or {}, { restore_cursor = true })
+
+  if type(value) == "boolean" then
+    if value == false then
+      rhs = "no" .. option
+    else
+      rhs = option
+    end
+  else
+    rhs = option .. "=" .. (type(value) == "table" and table.concat(value, ",") or value)
+  end
+
+  if type(winids) ~= "table" then
+    winids = { winids }
+  end
+
+  M.no_win_event_call(function()
+    for _, id in ipairs(winids) do
+      local nr = tostring(api.nvim_win_get_number(id == 0 and last_winid or id))
+      local cmd = string.format("%swindo setlocal ", nr)
+      vim.cmd(cmd .. rhs)
+    end
+
+    if opt.restore_cursor then
+      api.nvim_set_current_win(last_winid)
+    end
+  end)
+end
+
+---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).
+---@param option string
+---@param opt table
+function M.unset_local(winids, option, opt)
+  local last_winid = api.nvim_get_current_win()
+  opt = vim.tbl_extend("keep", opt or {}, { restore_cursor = true })
+
+  if type(winids) ~= "table" then
+    winids = { winids }
+  end
+
+  M.no_win_event_call(function()
+    for _, id in ipairs(winids) do
+      local nr = tostring(api.nvim_win_get_number(id == 0 and last_winid or id))
+      vim.cmd(string.format("%swindo set %s<", nr, option))
+    end
+
+    if opt.restore_cursor then
+      api.nvim_set_current_win(last_winid)
+    end
+  end)
 end
 
 return M
