@@ -9,9 +9,6 @@ function s:completion(argLead, cmdLine, curPos)
                 \ . "vim.fn.eval('a:curPos'))")
 endfunction
 
-nnoremap <silent> <C-W><C-M> <Cmd>WinShift<CR>
-nnoremap <silent> <C-W>m <Cmd>WinShift<CR>
-
 augroup WinShift
     au!
     au ColorScheme * lua require("winshift.colors").setup()
