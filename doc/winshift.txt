@@ -1,0 +1,65 @@
+*winshift.nvim*  Winshift.nvim
+
+Rearrange your windows with ease.
+
+Author: Sindre T. Strøm
+
+==============================================================================
+
+INTRODUCTION                                           *winshift-introduction*
+
+Winshift lets you move windows, not only around each other, but also in and
+out of rows and columns.
+
+USAGE                                         *Win-Move-mode* *winshift-usage*
+
+Enter Win-Move mode by calling `:Winshift`. This will target your current
+window for moving. You can move the window either by using |hjkl| or the arrow
+keys. You can move the window to any of the far ends of the viewport by
+pressing one of `HJKL`, or shift + any arrow key. Exit Win-Move mode by
+pressing `q` / `<esc>` / `<C-c>`.
+
+CONFIGURATION                                                *winshift-config*
+
+Example configuration with default settings:
+>
+    -- Lua
+    require("winshift").setup({
+      highlight_moving_win = true,  -- Highlight the window being moved
+      focused_hl_group = "Visual",  -- The highlight group used for the moving window
+      moving_win_options = {
+        -- These are local options applied to the moving window while it's
+        -- being moved. They are unset when you leave move mode.
+        wrap = false,
+        cursorline = false,
+        cursorcolumn = false,
+        colorcolumn = "",
+      }
+    })
+<
+
+COMMANDS                                                   *winshift-commands*
+
+                                                                   *:Winshift*
+:Winshift [direction]
+                        When called without [direction]: starts Win-Move mode
+                        targeting the current window for moving. For how to
+                        use Win-Move mode, see |Win-Move-mode|. With
+                        [direction] perform a one-shot move operation on the
+                        current window, moving it in the given direction.
+                        [direction] can be one of:
+                            `left`, `right`, `up`, `down`, `far_left`,
+                            `far_right`, `far_up`, `far_down`
+
+                        The `far_` variants will move the window to the far
+                        end of the viewport in the given direction.
+
+CAVEATS                                                     *winshift-caveats*
+
+Moving through windows with 'winfixwidth' and / or 'winfixheight' can be a bit
+wonky. It will work, but it can be a bit hard to follow the movement, and the
+fixed window might end up with different dimensions after. This is simply a
+consequence of vim being forced to resize the window due to there not being
+enough space to adhere to the fixed window's preferred dimensions.
+
+ vim:tw=78:ts=8:ft=help:norl:
