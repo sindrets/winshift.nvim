@@ -2,6 +2,8 @@
 
 > Rearrange your windows with ease.
 
+![showcase](https://user-images.githubusercontent.com/2786478/133154376-539474eb-73c9-4cd7-af8c-a6abb037c061.gif)
+
 ## Introduction
 
 Winshift lets you move windows, not only around each other, but also in and out
