@@ -19,15 +19,34 @@ local win_option_store  = {}
 ---@field index integer
 ---@field winid integer|nil
 
+---@alias HDirection '"left"'|'"right"'
+---@alias VDirection '"up"'|'"down"'
+---@alias Direction HDirection|VDirection|'"far_left"'|'"far_right"'|'"far_up"'|'"far_up"'
+
 M.key_dir_map = {
   h = "left",
   j = "down",
   k = "up",
   l = "right",
+  H = "far_left",
+  J = "far_down",
+  K = "far_up",
+  L = "far_right",
   [utils.raw_key("<left>")] = "left",
   [utils.raw_key("<down>")] = "down",
   [utils.raw_key("<up>")] = "up",
   [utils.raw_key("<right>")] = "right",
+  [utils.raw_key("<S-left>")] = "far_left",
+  [utils.raw_key("<S-down>")] = "far_down",
+  [utils.raw_key("<S-up>")] = "far_up",
+  [utils.raw_key("<S-right>")] = "far_right",
+}
+
+M.dir_move_map = {
+  far_left = "H",
+  far_down = "J",
+  far_up = "K",
+  far_right = "L",
 }
 
 function M.process_layout(layout)
@@ -168,7 +187,7 @@ end
 ---Move a leaf out of a row in a given direction.
 ---@param leaf Node
 ---@param row Node
----@param dir '"up"'|'"down"'
+---@param dir VDirection
 function M.row_move_out(leaf, row, dir)
   vim.cmd(string.format(
     "noautocmd keepjumps %dwindo %s sp",
@@ -182,7 +201,7 @@ end
 ---Move a leaf out of a column in a given direction.
 ---@param leaf Node
 ---@param col Node
----@param dir '"left"'|'"right"'
+---@param dir HDirection
 function M.col_move_out(leaf, col, dir)
   vim.cmd(string.format(
     "noautocmd keepjumps %dwindo %s vsp",
@@ -196,7 +215,7 @@ end
 ---Move a leaf into a row.
 ---@param leaf Node
 ---@param row Node
----@param dir '"left"'|'"right"'
+---@param dir HDirection
 function M.row_move_in(leaf, row, dir)
   local target_leaf = dir == "left" and M.get_last_leaf(row) or M.get_first_leaf(row)
   local opt = { vertical = true, rightbelow = dir == "left" }
@@ -214,7 +233,7 @@ end
 ---Move a leaf into a column.
 ---@param leaf Node
 ---@param col Node
----@param dir '"up"'|'"down"'
+---@param dir VDirection
 function M.col_move_in(leaf, col, dir)
   local target_leaf = dir == "up" and M.get_last_leaf(col) or M.get_first_leaf(col)
   local opt = { vertical = false, rightbelow = dir == "up" }
@@ -232,7 +251,7 @@ end
 ---Get the next node in a given direction in the given leaf's closest row
 ---parent. Returns `nil` if there's no node in the given direction.
 ---@param leaf Node
----@param dir '"left"'|'"right"'
+---@param dir HDirection
 ---@return Node|nil
 function M.next_node_horizontal(leaf, dir)
   local outside_parent = (
@@ -255,7 +274,7 @@ end
 ---Get the next node in a given direction in the given leaf's closest column
 ---parent. Returns `nil` if there's no node in the given direction.
 ---@param leaf Node
----@param dir '"up"'|'"down"'
+---@param dir VDirection
 ---@return Node|nil
 function M.next_node_vertical(leaf, dir)
   local outside_parent = (
@@ -318,8 +337,13 @@ function M.create_virtual_set(leaf)
 end
 
 ---@param winid integer
----@param dir '"left"'|'"right"'|'"up"'|'"down"'
+---@param dir Direction
 function M.move_win(winid, dir)
+  if vim.tbl_contains({ "far_left", "far_right", "far_up", "far_down" }, dir) then
+    vim.cmd(string.format("%dwincmd %s", api.nvim_win_get_number(winid), M.dir_move_map[dir]))
+    return
+  end
+
   local tree = M.get_layout_tree()
   local target_leaf = M.find_leaf(tree, winid)
   local outer_parent = (target_leaf.parent and target_leaf.parent.parent) or {}
