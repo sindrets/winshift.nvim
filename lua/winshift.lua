@@ -5,7 +5,14 @@ local api = vim.api
 local M = {}
 
 local completion_dir = {
-  "left", "right", "up", "down", "far_left", "far_right", "far_up", "far_down"
+  "left",
+  "right",
+  "up",
+  "down",
+  "far_left",
+  "far_right",
+  "far_up",
+  "far_down",
 }
 
 function M.setup(user_config)

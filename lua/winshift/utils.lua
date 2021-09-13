@@ -28,9 +28,9 @@ end
 function M.no_win_event_call(cb)
   local last = vim.opt.eventignore._value
   vim.opt.eventignore = (
-    "WinEnter,WinLeave,WinNew,WinClosed,BufEnter,BufLeave"
-    .. (last ~= "" and "," .. last or "")
-  )
+      "WinEnter,WinLeave,WinNew,WinClosed,BufEnter,BufLeave"
+      .. (last ~= "" and "," .. last or "")
+    )
   local ok, err = pcall(cb)
   vim.opt.eventignore = last
   return ok, err
@@ -184,7 +184,7 @@ end
 function M.input_char(prompt, opt)
   opt = vim.tbl_extend("keep", opt or {}, {
     clear_prompt = true,
-    allow_non_ascii = false
+    allow_non_ascii = false,
   })
 
   if prompt then

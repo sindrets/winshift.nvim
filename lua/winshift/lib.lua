@@ -2,7 +2,7 @@ local utils = require("winshift.utils")
 local config = require("winshift.config")
 local api = vim.api
 local M = {}
-local win_option_store  = {}
+local win_option_store = {}
 
 ---@class Node
 ---@type table<integer, Node>
@@ -58,7 +58,7 @@ function M.process_layout(layout)
       node.winid = parent[2]
     else
       for i, child in ipairs(parent[2]) do
-        node[#node+1] = recurse(child)
+        node[#node + 1] = recurse(child)
         node[#node].index = i
         node[#node].parent = node
       end
@@ -118,19 +118,23 @@ end
 ---@param a Node
 ---@param b Node
 function M.swap_leaves(a, b)
-  vim.cmd(string.format(
-    "noautocmd keepjumps %dwindo belowright %s",
-    api.nvim_win_get_number(a.winid),
-    a.parent.type == "col" and "vsp" or "sp"
-  ))
+  vim.cmd(
+    string.format(
+      "noautocmd keepjumps %dwindo belowright %s",
+      api.nvim_win_get_number(a.winid),
+      a.parent.type == "col" and "vsp" or "sp"
+    )
+  )
   local temp_a = api.nvim_get_current_win()
   local opt_a = { vertical = a.parent.type == "col", rightbelow = false }
 
-  vim.cmd(string.format(
-    "noautocmd keepjumps %dwindo belowright %s",
-    api.nvim_win_get_number(b.winid),
-    b.parent.type == "col" and "vsp" or "sp"
-  ))
+  vim.cmd(
+    string.format(
+      "noautocmd keepjumps %dwindo belowright %s",
+      api.nvim_win_get_number(b.winid),
+      b.parent.type == "col" and "vsp" or "sp"
+    )
+  )
   local temp_b = api.nvim_get_current_win()
   local opt_b = { vertical = b.parent.type == "col", rightbelow = false }
 
@@ -189,11 +193,13 @@ end
 ---@param row Node
 ---@param dir VDirection
 function M.row_move_out(leaf, row, dir)
-  vim.cmd(string.format(
-    "noautocmd keepjumps %dwindo %s sp",
-    api.nvim_win_get_number(leaf.winid),
-    dir == "up" and "belowright" or "aboveleft"
-  ))
+  vim.cmd(
+    string.format(
+      "noautocmd keepjumps %dwindo %s sp",
+      api.nvim_win_get_number(leaf.winid),
+      dir == "up" and "belowright" or "aboveleft"
+    )
+  )
   local tempwin = api.nvim_get_current_win()
   M.move_row(row, tempwin, { [leaf.winid] = true })
 end
@@ -203,11 +209,13 @@ end
 ---@param col Node
 ---@param dir HDirection
 function M.col_move_out(leaf, col, dir)
-  vim.cmd(string.format(
-    "noautocmd keepjumps %dwindo %s vsp",
-    api.nvim_win_get_number(leaf.winid),
-    dir == "left" and "belowright" or "aboveleft"
-  ))
+  vim.cmd(
+    string.format(
+      "noautocmd keepjumps %dwindo %s vsp",
+      api.nvim_win_get_number(leaf.winid),
+      dir == "left" and "belowright" or "aboveleft"
+    )
+  )
   local tempwin = api.nvim_get_current_win()
   M.move_col(col, tempwin, { [leaf.winid] = true })
 end
@@ -221,11 +229,13 @@ function M.row_move_in(leaf, row, dir)
   local opt = { vertical = true, rightbelow = dir == "left" }
   vim.fn.win_splitmove(leaf.winid, target_leaf.winid, opt)
 
-  vim.cmd(string.format(
-    "noautocmd keepjumps %s %dwindo vsp",
-    dir == "left" and "aboveleft" or "belowright",
-    api.nvim_win_get_number(leaf.winid)
-  ))
+  vim.cmd(
+    string.format(
+      "noautocmd keepjumps %s %dwindo vsp",
+      dir == "left" and "aboveleft" or "belowright",
+      api.nvim_win_get_number(leaf.winid)
+    )
+  )
   local tempwin = api.nvim_get_current_win()
   M.move_row(row, tempwin)
 end
@@ -239,11 +249,13 @@ function M.col_move_in(leaf, col, dir)
   local opt = { vertical = false, rightbelow = dir == "up" }
   vim.fn.win_splitmove(leaf.winid, target_leaf.winid, opt)
 
-  vim.cmd(string.format(
-    "noautocmd keepjumps %s %dwindo sp",
-    dir == "up" and "aboveleft" or "belowright",
-    api.nvim_win_get_number(leaf.winid)
-  ))
+  vim.cmd(
+    string.format(
+      "noautocmd keepjumps %s %dwindo sp",
+      dir == "up" and "aboveleft" or "belowright",
+      api.nvim_win_get_number(leaf.winid)
+    )
+  )
   local tempwin = api.nvim_get_current_win()
   M.move_col(col, tempwin)
 end
@@ -254,10 +266,8 @@ end
 ---@param dir HDirection
 ---@return Node|nil
 function M.next_node_horizontal(leaf, dir)
-  local outside_parent = (
-    (dir == "left" and leaf.index == 1)
+  local outside_parent = (dir == "left" and leaf.index == 1)
     or (dir == "right" and leaf.index == #leaf.parent)
-  )
 
   if leaf.parent.type == "col" or outside_parent then
     local outer_parent = leaf.parent.parent
@@ -277,10 +287,8 @@ end
 ---@param dir VDirection
 ---@return Node|nil
 function M.next_node_vertical(leaf, dir)
-  local outside_parent = (
-    (dir == "up" and leaf.index == 1)
+  local outside_parent = (dir == "up" and leaf.index == 1)
     or (dir == "down" and leaf.index == #leaf.parent)
-  )
 
   if leaf.parent.type == "row" or outside_parent then
     local outer_parent = leaf.parent.parent
@@ -364,13 +372,13 @@ function M.move_win(winid, dir)
         else
           local next_node = M.next_node_horizontal(target_leaf, dir)
           if next_node then
-            if (
+            if
               target_leaf.parent.type == "row"
               and #target_leaf.parent == 2
               and #outer_parent > 1
               and target_leaf.parent[1].type == "leaf"
               and target_leaf.parent[2].type == "leaf"
-              ) then
+            then
               -- Swap the windows
               M.swap_leaves(target_leaf.parent[1], target_leaf.parent[2])
             else
@@ -393,13 +401,13 @@ function M.move_win(winid, dir)
         else
           local next_node = M.next_node_vertical(target_leaf, dir)
           if next_node then
-            if (
+            if
               target_leaf.parent.type == "col"
               and #target_leaf.parent == 2
               and #outer_parent > 1
               and target_leaf.parent[1].type == "leaf"
               and target_leaf.parent[2].type == "leaf"
-              ) then
+            then
               -- Swap the windows
               M.swap_leaves(target_leaf.parent[1], target_leaf.parent[2])
             else
@@ -438,7 +446,7 @@ function M.start_move_mode()
 
   pcall(function()
     while not (char == "q" or raw == esc) do
-      api.nvim_echo({{ "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" }}, false, {})
+      api.nvim_echo({ { "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" } }, false, {})
       char, raw = utils.input_char(nil, { clear_prompt = false, allow_non_ascii = true })
       local dir = M.key_dir_map[char or raw]
       if dir then
@@ -485,13 +493,13 @@ end
 function M.highlight_win(winid)
   local curhl = vim.wo[winid].winhl
   vim.wo[winid].winhl = table.concat({
-      "Normal:WinShiftNormal",
-      "LineNr:WinShiftLineNr",
-      "CursorLineNr:WinShiftCursorLineNr",
-      "SignColumn:WinShiftSignColumn",
-      "FoldColumn:WinShiftFoldColumn",
-      curhl ~= "" and curhl or nil
-    }, ",")
+    "Normal:WinShiftNormal",
+    "LineNr:WinShiftLineNr",
+    "CursorLineNr:WinShiftCursorLineNr",
+    "SignColumn:WinShiftSignColumn",
+    "FoldColumn:WinShiftFoldColumn",
+    curhl ~= "" and curhl or nil,
+  }, ",")
 end
 
 return M

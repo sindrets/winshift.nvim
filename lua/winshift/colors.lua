@@ -58,13 +58,15 @@ M.hl_links = {}
 
 function M.setup()
   for name, v in pairs(M.get_hl_groups()) do
-    vim.cmd(string.format(
-      "hi WinShift%s %s %s %s",
-      name,
-      v.fg and "guifg=" .. v.fg or "",
-      v.bg and "guibg=" .. v.bg or "",
-      v.gui and "gui=" .. v.gui or ""
-    ))
+    vim.cmd(
+      string.format(
+        "hi WinShift%s %s %s %s",
+        name,
+        v.fg and "guifg=" .. v.fg or "",
+        v.bg and "guibg=" .. v.bg or "",
+        v.gui and "gui=" .. v.gui or ""
+      )
+    )
   end
 
   for from, to in pairs(M.hl_links) do
