@@ -1,4 +1,4 @@
-*winshift.nvim*  Winshift.nvim
+*winshift.nvim*  WinShift.nvim
 
 Rearrange your windows with ease.
 
@@ -8,12 +8,12 @@ Author: Sindre T. Strøm
 
 INTRODUCTION                                           *winshift-introduction*
 
-Winshift lets you move windows, not only around each other, but also in and
+WinShift lets you move windows, not only around each other, but also in and
 out of rows and columns.
 
 USAGE                                         *Win-Move-mode* *winshift-usage*
 
-Enter Win-Move mode by calling `:Winshift`. This will target your current
+Enter Win-Move mode by calling `:WinShift`. This will target your current
 window for moving. You can move the window either by using |hjkl| or the arrow
 keys. You can move the window to any of the far ends of the viewport by
 pressing one of `HJKL`, or shift + any arrow key. Exit Win-Move mode by
@@ -40,8 +40,8 @@ Example configuration with default settings:
 
 COMMANDS                                                   *winshift-commands*
 
-                                                                   *:Winshift*
-:Winshift [direction]
+                                                                   *:WinShift*
+:WinShift [direction]
                         When called without [direction]: starts Win-Move mode
                         targeting the current window for moving. For how to
                         use Win-Move mode, see |Win-Move-mode|. With

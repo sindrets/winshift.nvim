@@ -4,6 +4,24 @@ local lib = require("winshift.lib")
 local api = vim.api
 local M = {}
 
+-- Lazily ensure that setup has been run before accessing any module exports.
+local init_done = false
+local init_safeguard = setmetatable({}, {
+  __index = function(_, k)
+    if not init_done then
+      init_done = true
+      if k == "setup" then
+        return M[k]
+      else
+        config.setup({})
+        return M[k]
+      end
+    else
+      return M[k]
+    end
+  end
+})
+
 local completion_dir = {
   "left",
   "right",
@@ -42,6 +60,4 @@ function M.completion(arg_lead, cmd_line, cur_pos)
   return filter_completion(arg_lead, completion_dir)
 end
 
-config.setup({})
-
-return M
+return init_safeguard

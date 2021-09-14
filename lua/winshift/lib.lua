@@ -21,7 +21,7 @@ local win_option_store = {}
 
 ---@alias HDirection '"left"'|'"right"'
 ---@alias VDirection '"up"'|'"down"'
----@alias Direction HDirection|VDirection|'"far_left"'|'"far_right"'|'"far_up"'|'"far_up"'
+---@alias Direction HDirection|VDirection|'"far_left"'|'"far_right"'|'"far_up"'|'"far_down"'
 
 M.key_dir_map = {
   h = "left",
