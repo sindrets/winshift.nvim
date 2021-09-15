@@ -451,8 +451,8 @@ function M.start_move_mode()
       local dir = M.key_dir_map[char or raw]
       if dir then
         M.move_win(cur_win, dir)
-        vim.cmd("redraw")
       end
+      vim.cmd("redraw")
     end
   end)
 
