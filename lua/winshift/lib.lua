@@ -494,7 +494,10 @@ function M.highlight_win(winid)
   local curhl = vim.wo[winid].winhl
   vim.wo[winid].winhl = table.concat({
     "Normal:WinShiftNormal",
+    "EndOfBuffer:WinShiftEndOfBuffer",
     "LineNr:WinShiftLineNr",
+    "LineNrAbove:WinShiftLineNrAbove",
+    "LineNrBelow:WinShiftLineNrBelow",
     "CursorLineNr:WinShiftCursorLineNr",
     "SignColumn:WinShiftSignColumn",
     "FoldColumn:WinShiftFoldColumn",

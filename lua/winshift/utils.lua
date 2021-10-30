@@ -1,6 +1,13 @@
 local api = vim.api
 local M = {}
 
+local setlocal_opr_templates = {
+  set = [[setl ${option}=${value}]],
+  remove = [[exe 'setl ${option}-=${value}']],
+  append = [[exe 'setl ${option}=' . (&${option} == "" ? "" : &${option} . ",") . '${value}']],
+  prepend = [[exe 'setl ${option}=${value}' . (&${option} == "" ? "" : "," . &${option})]],
+}
+
 function M._echo_multiline(msg)
   for _, s in ipairs(vim.fn.split(msg, "\n")) do
     vim.cmd("echom '" .. s:gsub("'", "''") .. "'")
@@ -115,45 +122,6 @@ function M.tbl_deep_clone(t)
   return clone
 end
 
-function M.tbl_deep_equals(t1, t2)
-  if not (t1 and t2) then
-    return false
-  end
-
-  local function recurse(t11, t22)
-    if #t11 ~= #t22 then
-      return false
-    end
-
-    local seen = {}
-    for key, value in pairs(t11) do
-      seen[key] = true
-      if type(value) == "table" then
-        if type(t22[key]) ~= "table" then
-          return false
-        end
-        if not recurse(value, t22[key]) then
-          return false
-        end
-      else
-        if not (value == t22[key]) then
-          return false
-        end
-      end
-    end
-
-    for key, _ in pairs(t22) do
-      if not seen[key] then
-        return false
-      end
-    end
-
-    return true
-  end
-
-  return recurse(t1, t2)
-end
-
 function M.tbl_pack(...)
   return { n = select("#", ...), ... }
 end
@@ -175,6 +143,16 @@ function M.tbl_clear(t)
   for k, _ in pairs(t) do
     t[k] = nil
   end
+end
+
+---Simple string templating
+---Example template: "${name} is ${value}"
+---@param str string Template string
+---@param table table Key-value pairs to replace in the string
+function M.str_template(str, table)
+  return (str:gsub("($%b{})", function(w)
+    return table[w:sub(3, -2)] or w
+  end))
 end
 
 function M.clear_prompt()
@@ -230,36 +208,36 @@ end
 ---@param option string
 ---@param value string[]|string
 ---@param opt table
+---`opt` fields:
+---   - `method` '"set"'|'"remove"'|'"append"'|'"prepend"' Assignment method. (default: "set")
 function M.set_local(winids, option, value, opt)
-  local last_winid = api.nvim_get_current_win()
-  local rhs
-  opt = vim.tbl_extend("keep", opt or {}, { restore_cursor = true })
+  local cmd
+  opt = vim.tbl_extend("keep", opt or {}, {
+    method = "set",
+  })
 
   if type(value) == "boolean" then
-    if value == false then
-      rhs = "no" .. option
-    else
-      rhs = option
-    end
+    cmd = string.format("setl %s%s", value and "" or "no", option)
   else
-    rhs = option .. "=" .. (type(value) == "table" and table.concat(value, ",") or value)
+    value = (type(value) == "table" and table.concat(value, ",") or tostring(value)):gsub("'", "''")
+    cmd = M.str_template(setlocal_opr_templates[opt.method], { option = option, value = value })
   end
 
   if type(winids) ~= "table" then
     winids = { winids }
   end
 
-  M.no_win_event_call(function()
+  local ok, err = M.no_win_event_call(function()
     for _, id in ipairs(winids) do
-      local nr = tostring(api.nvim_win_get_number(id == 0 and last_winid or id))
-      local cmd = string.format("%swindo setlocal ", nr)
-      vim.cmd(cmd .. rhs)
-    end
-
-    if opt.restore_cursor then
-      api.nvim_set_current_win(last_winid)
+      api.nvim_win_call(id, function()
+        vim.cmd(cmd)
+      end)
     end
   end)
+
+  if not ok then
+    error(err)
+  end
 end
 
 ---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).
