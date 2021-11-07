@@ -48,7 +48,25 @@ require("winshift").setup({
     cursorline = false,
     cursorcolumn = false,
     colorcolumn = "",
-  }
+  },
+  -- The window picker is used to select a window while swapping windows with
+  -- ':WinShift swap'.
+  -- A string of chars used as identifiers by the window picker.
+  window_picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+  window_picker_ignore = {
+    -- This table allows you to indicate to the window picker that a window
+    -- should be ignored if its buffer matches any of the following criteria.
+    filetype = {  -- List of ignored file types
+      "NvimTree",
+    },
+    buftype = {   -- List of ignored buftypes
+      "terminal",
+      "quickfix",
+    },
+    bufname = {   -- List of regex patterns matching ignored buffer names
+      [[.*foo/bar/baz\.qux]]
+    },
+  },
 })
 ```
 
@@ -58,6 +76,9 @@ Optionally create some mappings for starting Win-Move mode:
 " Start Win-Move mode:
 nnoremap <C-W><C-M> <Cmd>WinShift<CR>
 nnoremap <C-W>m <Cmd>WinShift<CR>
+
+" Swap two windows:
+nnoremap <C-W>X <Cmd>WinShift swap<CR>
 
 " If you don't want to use Win-Move mode you can create mappings for calling the
 " move commands directly:
@@ -84,6 +105,13 @@ moving it in the given direction. `[direction]` can be one of:
 
 The `far_` variants will move the window to the far
 end of the viewport in the given direction.
+
+### `:WinShift swap`
+
+Swap the current window with another. When this command is called, you'll be
+prompted to select the window you want to swap with. A selection is made by
+pressing the character displayed in the statusline of the target window. The
+input is case-insensitive.
 
 ## Caveats
 

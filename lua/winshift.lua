@@ -31,6 +31,7 @@ local completion_dir = {
   "far_right",
   "far_up",
   "far_down",
+  "swap",
 }
 
 function M.setup(user_config)
@@ -40,7 +41,11 @@ end
 function M.cmd_winshift(dir)
   if dir then
     if not vim.tbl_contains(completion_dir, dir) then
-      utils.err("Direction must be one of: " .. table.concat(completion_dir, ", "))
+      utils.err("Action must be one of: " .. table.concat(completion_dir, ", "))
+      return
+    end
+    if dir == "swap" then
+      lib.start_swap_mode()
       return
     end
     lib.move_win(api.nvim_get_current_win(), dir)

@@ -10,7 +10,13 @@ M.defaults = {
     cursorline = false,
     cursorcolumn = false,
     colorcolumn = "",
-  }
+  },
+  window_picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+  window_picker_ignore = {
+    filetype = {},
+    buftype = {},
+    bufname = {},
+  },
 }
 -- stylua: ignore end
 

@@ -54,6 +54,13 @@ COMMANDS                                                   *winshift-commands*
                         The `far_` variants will move the window to the far
                         end of the viewport in the given direction.
 
+:WinShift swap
+                        Swap the current window with another. When this
+                        command is called, you'll be prompted to select the
+                        window you want to swap with. A selection is made by
+                        pressing the character displayed in the statusline of
+                        the target window. The input is case-insensitive.
+
 CAVEATS                                                     *winshift-caveats*
 
 Moving through windows with 'winfixwidth' and / or 'winfixheight' can be a bit

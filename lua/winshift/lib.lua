@@ -11,13 +11,8 @@ local win_option_store = {}
 ---@field index integer
 ---@field winid integer|nil
 
----@class VirtualNode
----@type table<integer, Node>
----@field type '"leaf"'|'"row"'|'"col"'
+---@class VirtualNode : Node
 ---@field target Node
----@field parent Node
----@field index integer
----@field winid integer|nil
 
 ---@alias HDirection '"left"'|'"right"'
 ---@alias VDirection '"up"'|'"down"'
@@ -302,6 +297,99 @@ function M.next_node_vertical(leaf, dir)
   end
 end
 
+---Get user to pick a window. Selectable windows are all windows in the current
+---tabpage.
+---@param ignore table<integer, boolean>
+---@return integer|nil -- If a valid window was picked, return its id. If an
+---       invalid window was picked / user canceled, return nil. If there are
+---       no selectable windows, return -1.
+function M.pick_window(ignore)
+  local tabpage = api.nvim_get_current_tabpage()
+  local win_ids = api.nvim_tabpage_list_wins(tabpage)
+  local exclude = config.get_config().window_picker_ignore
+
+  local selectable = vim.tbl_filter(function (id)
+    local bufid = api.nvim_win_get_buf(id)
+    local bufname = api.nvim_buf_get_name(bufid)
+
+    if ignore[id] then
+      return false
+    end
+
+    for _, option in ipairs({ "filetype", "buftype" }) do
+      if vim.tbl_contains(exclude[option], vim.bo[bufid][option]) then
+        return false
+      end
+    end
+
+    for _, pattern in ipairs(exclude.bufname) do
+      local regex = vim.regex(pattern)
+      if regex:match_str(bufname) ~= nil then
+        return false
+      end
+    end
+
+    local win_config = api.nvim_win_get_config(id)
+    return win_config.focusable and not win_config.external
+  end, win_ids)
+
+  -- If there are no selectable windows: return. If there's only 1, return it without picking.
+  if #selectable == 0 then return -1 end
+  if #selectable == 1 then return selectable[1] end
+
+  local chars = config.get_config().window_picker_chars:upper()
+  local i = 1
+  local win_opts = {}
+  local win_map = {}
+  local laststatus = vim.o.laststatus
+  vim.o.laststatus = 2
+
+  -- Setup UI
+  for _, id in ipairs(selectable) do
+    local char = chars:sub(i, i)
+    local ok_status, statusline = pcall(api.nvim_win_get_option, id, "statusline")
+    local ok_hl, winhl = pcall(api.nvim_win_get_option, id, "winhl")
+
+    win_opts[id] = {
+      statusline = ok_status and statusline or "",
+      winhl = ok_hl and winhl or ""
+    }
+    win_map[char] = id
+
+    utils.set_local(
+      id,
+      {
+        statusline = "%=" .. char .. "%=",
+        winhl = {
+          "StatusLine:WinShiftWindowPicker,StatusLineNC:WinShiftWindowPicker",
+          opt = { method = "append" },
+        },
+      }
+    )
+
+    i = i + 1
+    if i > #chars then break end
+  end
+
+  vim.cmd("redraw")
+  local ok, resp = pcall(utils.input_char, "Pick window: ", { prompt_hl = "ModeMsg" })
+  if not ok then
+    utils.clear_prompt()
+  end
+  resp = (resp or ""):upper()
+
+  -- Restore window options
+  for _, id in ipairs(selectable) do
+    for opt, value in pairs(win_opts[id]) do
+      api.nvim_win_set_option(id, opt, value)
+    end
+  end
+
+  vim.o.laststatus = laststatus
+
+  return win_map[resp]
+end
+
 ---@param leaf Node
 ---@return VirtualNode|nil
 function M.create_virtual_set(leaf)
@@ -313,19 +401,17 @@ function M.create_virtual_set(leaf)
 
   for i = leaf.index - 1, 1, -1 do
     if leaf.parent[i].type ~= "leaf" then
-      goto done_first
+      break
     end
     first = i
   end
-  ::done_first::
 
   for i = leaf.index + 1, #leaf.parent do
     if leaf.parent[i].type ~= "leaf" then
-      goto done_last
+      break
     end
     last = i
   end
-  ::done_last::
 
   if not (first == leaf.index and last == leaf.index) then
     local target = utils.tbl_clone(leaf)
@@ -457,6 +543,38 @@ function M.start_move_mode()
   end)
 
   utils.clear_prompt()
+
+  if conf.highlight_moving_win then
+    vim.wo[cur_win].winhl = lasthl
+  end
+
+  M.restore_win_options(cur_win)
+end
+
+function M.start_swap_mode()
+  local cur_win = api.nvim_get_current_win()
+  local lasthl = vim.wo[cur_win].winhl
+  local conf = config.get_config()
+  M.save_win_options(cur_win)
+
+  if conf.highlight_moving_win then
+    M.highlight_win(cur_win)
+  end
+  utils.set_local(cur_win, conf.moving_win_options)
+  vim.cmd("redraw")
+
+  pcall(function()
+    local target = M.pick_window({ [cur_win] = true })
+
+    if target == -1 or target == nil then
+      return
+    end
+
+    local tree = M.get_layout_tree()
+    local cur_leaf = M.find_leaf(tree, cur_win)
+    local target_leaf = M.find_leaf(tree, target)
+    M.swap_leaves(cur_leaf, target_leaf)
+  end)
 
   if conf.highlight_moving_win then
     vim.wo[cur_win].winhl = lasthl
