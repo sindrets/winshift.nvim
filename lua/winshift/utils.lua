@@ -163,10 +163,11 @@ function M.input_char(prompt, opt)
   opt = vim.tbl_extend("keep", opt or {}, {
     clear_prompt = true,
     allow_non_ascii = false,
+    prompt_hl = nil,
   })
 
   if prompt then
-    vim.api.nvim_echo({ { prompt } }, false, {})
+    vim.api.nvim_echo({ { prompt, opt.prompt_hl } }, false, {})
   end
 
   local c
@@ -205,32 +206,50 @@ end
 ---HACK: workaround for inconsistent behavior from `vim.opt_local`.
 ---@see [Neovim issue](https://github.com/neovim/neovim/issues/14670)
 ---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).
----@param option string
----@param value string[]|string
----@param opt table
 ---`opt` fields:
----   - `method` '"set"'|'"remove"'|'"append"'|'"prepend"' Assignment method. (default: "set")
-function M.set_local(winids, option, value, opt)
-  local cmd
-  opt = vim.tbl_extend("keep", opt or {}, {
-    method = "set",
-  })
-
-  if type(value) == "boolean" then
-    cmd = string.format("setl %s%s", value and "" or "no", option)
-  else
-    value = (type(value) == "table" and table.concat(value, ",") or tostring(value)):gsub("'", "''")
-    cmd = M.str_template(setlocal_opr_templates[opt.method], { option = option, value = value })
-  end
-
+---   @tfield method '"set"'|'"remove"'|'"append"'|'"prepend"' Assignment method. (default: "set")
+---@overload fun(winids: number[]|number, option: string, value: string[]|string|boolean, opt?: any)
+---@overload fun(winids: number[]|number, map: table<string, string[]|string|boolean>, opt?: table)
+function M.set_local(winids, x, y, z)
   if type(winids) ~= "table" then
     winids = { winids }
   end
 
+  local map, opt
+  if y == nil or type(y) == "table" then
+    map = x
+    opt = y
+  else
+    map = { [x] = y }
+    opt = z
+  end
+
+  opt = vim.tbl_extend("keep", opt or {}, { method = "set" })
+
+  local cmd
   local ok, err = M.no_win_event_call(function()
     for _, id in ipairs(winids) do
       api.nvim_win_call(id, function()
-        vim.cmd(cmd)
+        for option, value in pairs(map) do
+          local o = opt
+
+          if type(value) == "boolean" then
+            cmd = string.format("setl %s%s", value and "" or "no", option)
+          else
+            if type(value) == "table" then
+              ---@diagnostic disable-next-line: undefined-field
+              o = vim.tbl_extend("force", opt, value.opt or {})
+              value = table.concat(value, ",")
+            end
+
+            cmd = M.str_template(
+              setlocal_opr_templates[o.method],
+              { option = option, value = tostring(value):gsub("'", "''") }
+            )
+          end
+
+          vim.cmd(cmd)
+        end
       end)
     end
   end)
@@ -242,23 +261,16 @@ end
 
 ---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).
 ---@param option string
----@param opt table
-function M.unset_local(winids, option, opt)
-  local last_winid = api.nvim_get_current_win()
-  opt = vim.tbl_extend("keep", opt or {}, { restore_cursor = true })
-
+function M.unset_local(winids, option)
   if type(winids) ~= "table" then
     winids = { winids }
   end
 
   M.no_win_event_call(function()
     for _, id in ipairs(winids) do
-      local nr = tostring(api.nvim_win_get_number(id == 0 and last_winid or id))
-      vim.cmd(string.format("%swindo set %s<", nr, option))
-    end
-
-    if opt.restore_cursor then
-      api.nvim_set_current_win(last_winid)
+      api.nvim_win_call(id, function()
+        vim.cmd(string.format("set %s<", option))
+      end)
     end
   end)
 end

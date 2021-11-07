@@ -86,6 +86,7 @@ function M.get_hl_groups()
     CursorLineNr = { fg = M.get_fg("CursorLineNr"), bg = focused_bg, gui = M.get_gui("CursorLineNr") },
     SignColumn = { fg = M.get_fg("SignColumn"), bg = focused_bg },
     FoldColumn = { fg = M.get_fg("FoldColumn"), bg = focused_bg },
+    WindowPicker = { fg = "#ededed", bg = "#4493c8", gui = "bold" },
   }
 end
 
