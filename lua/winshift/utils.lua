@@ -1,6 +1,8 @@
 local api = vim.api
 local M = {}
 
+---@alias vector any[]
+
 local setlocal_opr_templates = {
   set = [[setl ${option}=${value}]],
   remove = [[exe 'setl ${option}-=${value}']],
@@ -8,28 +10,37 @@ local setlocal_opr_templates = {
   prepend = [[exe 'setl ${option}=${value}' . (&${option} == "" ? "" : "," . &${option})]],
 }
 
-function M._echo_multiline(msg)
-  for _, s in ipairs(vim.fn.split(msg, "\n")) do
-    vim.cmd("echom '" .. s:gsub("'", "''") .. "'")
+function M._echo_multiline(msg, hl, schedule)
+  if schedule then
+    vim.schedule(function()
+      M._echo_multiline(msg, hl, false)
+    end)
+    return
   end
-end
 
-function M.info(msg)
-  vim.cmd("echohl Directory")
-  M._echo_multiline("[WinShift.nvim] " .. msg)
+  vim.cmd("echohl " .. (hl or "None"))
+  for _, line in ipairs(vim.split(msg, "\n")) do
+    vim.cmd(string.format('echom "%s"', vim.fn.escape(line, [["\]])))
+  end
   vim.cmd("echohl None")
 end
 
-function M.warn(msg)
-  vim.cmd("echohl WarningMsg")
-  M._echo_multiline("[WinShift.nvim] " .. msg)
-  vim.cmd("echohl None")
+---@param msg string
+---@param schedule? boolean Schedule the echo call.
+function M.info(msg, schedule)
+  M._echo_multiline("[WinShift.nvim] " .. msg, "Directory", schedule)
 end
 
-function M.err(msg)
-  vim.cmd("echohl ErrorMsg")
-  M._echo_multiline("[WinShift.nvim] " .. msg)
-  vim.cmd("echohl None")
+---@param msg string
+---@param schedule? boolean Schedule the echo call.
+function M.warn(msg, schedule)
+  M._echo_multiline("[WinShift.nvim] " .. msg, "WarningMsg", schedule)
+end
+
+---@param msg string
+---@param schedule? boolean Schedule the echo call.
+function M.err(msg, schedule)
+  M._echo_multiline("[WinShift.nvim] " .. msg, "ErrorMsg", schedule)
 end
 
 function M.no_win_event_call(cb)
@@ -61,34 +72,6 @@ function M.pattern_esc(s)
     ["^"] = "%^",
     ["$"] = "%$",
   })
-  return result
-end
-
----Create a shallow copy of a portion of a list.
----@param t table
----@param first integer First index, inclusive
----@param last integer Last index, inclusive
----@return any[]
-function M.tbl_slice(t, first, last)
-  local slice = {}
-  for i = first, last or #t, 1 do
-    table.insert(slice, t[i])
-  end
-
-  return slice
-end
-
-function M.tbl_concat(...)
-  local result = {}
-  local n = 0
-
-  for _, t in ipairs({ ... }) do
-    for i, v in ipairs(t) do
-      result[n + i] = v
-    end
-    n = n + #t
-  end
-
   return result
 end
 
@@ -130,7 +113,57 @@ function M.tbl_unpack(t, i, j)
   return unpack(t, i or 1, j or t.n or #t)
 end
 
-function M.tbl_indexof(t, v)
+function M.tbl_clear(t)
+  for k, _ in pairs(t) do
+    t[k] = nil
+  end
+end
+
+---Create a shallow copy of a portion of a vector.
+---@param t vector
+---@param first? integer First index, inclusive
+---@param last? integer Last index, inclusive
+---@return vector
+function M.vec_slice(t, first, last)
+  local slice = {}
+  for i = first or 1, last or #t do
+    table.insert(slice, t[i])
+  end
+
+  return slice
+end
+
+---Join multiple vectors into one.
+---@vararg vector
+---@return vector
+function M.vec_join(...)
+  local result = {}
+  local args = {...}
+  local n = 0
+
+  for i = 1, select("#", ...) do
+    if type(args[i]) ~= "nil" then
+      if type(args[i]) ~= "table" then
+        result[n + 1] = args[i]
+        n = n + 1
+      else
+        for j, v in ipairs(args[i]) do
+          result[n + j] = v
+        end
+        n = n + #args[i]
+      end
+    end
+  end
+
+  return result
+end
+
+---Return the first index a given object can be found in a vector, or -1 if
+---it's not present.
+---@param t vector
+---@param v any
+---@return integer
+function M.vec_indexof(t, v)
   for i, vt in ipairs(t) do
     if vt == v then
       return i
@@ -139,10 +172,15 @@ function M.tbl_indexof(t, v)
   return -1
 end
 
-function M.tbl_clear(t)
-  for k, _ in pairs(t) do
-    t[k] = nil
+---Append any number of objects to the end of a vector. Pushing `nil`
+---effectively does nothing.
+---@param t vector
+---@return vector t
+function M.vec_push(t, ...)
+  for _, v in ipairs({...}) do
+    t[#t + 1] = v
   end
+  return t
 end
 
 ---Simple string templating

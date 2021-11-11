@@ -525,12 +525,10 @@ function M.start_move_mode()
   if conf.highlight_moving_win then
     M.highlight_win(cur_win)
   end
-  for option, value in pairs(conf.moving_win_options) do
-    utils.set_local(cur_win, option, value)
-  end
+  utils.set_local(cur_win, conf.moving_win_options)
   vim.cmd("redraw")
 
-  pcall(function()
+  local ok, err = pcall(function()
     while not (char == "q" or raw == esc) do
       api.nvim_echo({ { "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" } }, false, {})
       char, raw = utils.input_char(nil, { clear_prompt = false, allow_non_ascii = true })
@@ -549,6 +547,10 @@ function M.start_move_mode()
   end
 
   M.restore_win_options(cur_win)
+
+  if not ok then
+    utils._echo_multiline(err, "ErrorMsg")
+  end
 end
 
 function M.start_swap_mode()
@@ -563,7 +565,7 @@ function M.start_swap_mode()
   utils.set_local(cur_win, conf.moving_win_options)
   vim.cmd("redraw")
 
-  pcall(function()
+  local ok, err = pcall(function()
     local target = M.pick_window({ [cur_win] = true })
 
     if target == -1 or target == nil then
@@ -581,6 +583,10 @@ function M.start_swap_mode()
   end
 
   M.restore_win_options(cur_win)
+
+  if not ok then
+    utils._echo_multiline(err, "ErrorMsg")
+  end
 end
 
 function M.save_win_options(winid)
@@ -610,17 +616,27 @@ end
 
 function M.highlight_win(winid)
   local curhl = vim.wo[winid].winhl
-  vim.wo[winid].winhl = table.concat({
+  local hl = {
     "Normal:WinShiftNormal",
     "EndOfBuffer:WinShiftEndOfBuffer",
     "LineNr:WinShiftLineNr",
-    "LineNrAbove:WinShiftLineNrAbove",
-    "LineNrBelow:WinShiftLineNrBelow",
     "CursorLineNr:WinShiftCursorLineNr",
     "SignColumn:WinShiftSignColumn",
     "FoldColumn:WinShiftFoldColumn",
     curhl ~= "" and curhl or nil,
-  }, ",")
+  }
+
+  if vim.fn.has("nvim-0.6") == 1 then
+    hl = utils.vec_join(
+      hl,
+      {
+        "LineNrAbove:WinShiftLineNrAbove",
+        "LineNrBelow:WinShiftLineNrBelow",
+      }
+    )
+  end
+
+  vim.wo[winid].winhl = table.concat(hl, ",")
 end
 
 return M
