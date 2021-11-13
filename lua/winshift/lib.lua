@@ -461,7 +461,6 @@ function M.move_win(winid, dir)
             if
               target_leaf.parent.type == "row"
               and #target_leaf.parent == 2
-              and #outer_parent > 1
               and target_leaf.parent[1].type == "leaf"
               and target_leaf.parent[2].type == "leaf"
             then
@@ -490,7 +489,6 @@ function M.move_win(winid, dir)
             if
               target_leaf.parent.type == "col"
               and #target_leaf.parent == 2
-              and #outer_parent > 1
               and target_leaf.parent[1].type == "leaf"
               and target_leaf.parent[2].type == "leaf"
             then
