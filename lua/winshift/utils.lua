@@ -241,6 +241,14 @@ function M.raw_key(vim_key)
   return api.nvim_eval(string.format([["\%s"]], vim_key))
 end
 
+function M.pause(msg)
+  vim.cmd("redraw")
+  M.input_char(
+    "-- PRESS ANY KEY TO CONTINUE -- " .. (msg or ""),
+    { allow_non_ascii = true, prompt_hl = "Directory" }
+  )
+end
+
 ---HACK: workaround for inconsistent behavior from `vim.opt_local`.
 ---@see [Neovim issue](https://github.com/neovim/neovim/issues/14670)
 ---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).

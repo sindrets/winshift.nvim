@@ -218,17 +218,17 @@ end
 ---Move a leaf into a row.
 ---@param leaf Node
 ---@param row Node
----@param dir HDirection
+---@param dir HDirection Determines what side of the row the leaf is moved to.
 function M.row_move_in(leaf, row, dir)
-  local target_leaf = dir == "left" and M.get_last_leaf(row) or M.get_first_leaf(row)
-  local opt = { vertical = true, rightbelow = dir == "left" }
+  local target_leaf = dir == "right" and M.get_last_leaf(row) or M.get_first_leaf(row)
+  local opt = { vertical = true, rightbelow = dir == "right" }
   vim.fn.win_splitmove(leaf.winid, target_leaf.winid, opt)
 
   vim.cmd(
     string.format(
-      "noautocmd keepjumps %s %dwindo vsp",
-      dir == "left" and "aboveleft" or "belowright",
-      api.nvim_win_get_number(leaf.winid)
+      "noautocmd keepjumps %dwindo %s vsp",
+      api.nvim_win_get_number(leaf.winid),
+      dir == "right" and "aboveleft" or "belowright"
     )
   )
   local tempwin = api.nvim_get_current_win()
@@ -238,17 +238,17 @@ end
 ---Move a leaf into a column.
 ---@param leaf Node
 ---@param col Node
----@param dir VDirection
+---@param dir VDirection Determines what side of the col the leaf is moved to.
 function M.col_move_in(leaf, col, dir)
-  local target_leaf = dir == "up" and M.get_last_leaf(col) or M.get_first_leaf(col)
-  local opt = { vertical = false, rightbelow = dir == "up" }
+  local target_leaf = dir == "down" and M.get_last_leaf(col) or M.get_first_leaf(col)
+  local opt = { vertical = false, rightbelow = dir == "down" }
   vim.fn.win_splitmove(leaf.winid, target_leaf.winid, opt)
 
   vim.cmd(
     string.format(
-      "noautocmd keepjumps %s %dwindo sp",
-      dir == "up" and "aboveleft" or "belowright",
-      api.nvim_win_get_number(leaf.winid)
+      "noautocmd keepjumps %dwindo %s sp",
+      api.nvim_win_get_number(leaf.winid),
+      dir == "down" and "aboveleft" or "belowright"
     )
   )
   local tempwin = api.nvim_get_current_win()
