@@ -391,43 +391,66 @@ function M.pick_window(ignore)
 end
 
 ---@param leaf Node
+---@param flatten boolean
 ---@return VirtualNode|nil
-function M.create_virtual_set(leaf)
+function M.create_virtual_set(leaf, flatten)
   if not leaf.parent then
     return
+  end
+
+  local parent = leaf.parent
+
+  -- Handle case where moving the leaf will result in a different virtual set.
+  if flatten
+      and #parent == 2
+      and parent[leaf.index % 2 + 1].type == "leaf"
+      and parent.parent then
+    leaf = utils.tbl_clone(leaf)
+    parent = utils.tbl_clone(parent.parent)
+    parent[leaf.parent.index] = leaf
+    table.insert(parent, leaf.parent.index, utils.tbl_clone(leaf.parent[leaf.index % 2 + 1]))
+
+    for i, l in ipairs(parent) do
+      l.index = i
+      l.parent = parent
+    end
   end
 
   local first, last = leaf.index, leaf.index
 
   for i = leaf.index - 1, 1, -1 do
-    if leaf.parent[i].type ~= "leaf" then
+    if parent[i].type ~= "leaf" then
       break
     end
     first = i
   end
 
-  for i = leaf.index + 1, #leaf.parent do
-    if leaf.parent[i].type ~= "leaf" then
+  for i = leaf.index + 1, #parent do
+    if parent[i].type ~= "leaf" then
       break
     end
     last = i
   end
 
-  if not (first == leaf.index and last == leaf.index) then
-    local target = utils.tbl_clone(leaf)
-    local set = { target = target }
-    for k, v in pairs(leaf.parent) do
-      if type(k) ~= "number" then
-        set[k] = v
-      end
-    end
-    for i = first, last do
-      set[i - first + 1] = leaf.parent[i]
-    end
-    set.parent = leaf.parent.parent
-    target.parent = set
-    return set
+  if (first == leaf.index and last == leaf.index) -- Virtual set is empty
+      or (first == 1 and last == #parent)         -- Virtual set is the same as the normal set
+      or last - first + 1 == 2 then               -- Virtual sets of 2 leaves are pointless
+    return
   end
+
+  local target = utils.tbl_clone(leaf)
+  local set = { target = target }
+  for k, v in pairs(parent) do
+    if type(k) ~= "number" then
+      set[k] = v
+    end
+  end
+  for i = first, last do
+    set[#set + 1] = parent[i]
+  end
+  set.parent = parent.parent
+  target.parent = set
+  return set
 end
 
 ---@param winid integer
@@ -447,16 +470,14 @@ function M.move_win(winid, dir)
     local ok, err = utils.no_win_event_call(function()
       if dir == "left" or dir == "right" then
         -- Horizontal
-        local set
         if target_leaf.parent.type == "col" then
-          set = M.create_virtual_set(target_leaf)
-        end
-
-        if set or target_leaf.parent.type == "col" then
+          local set = M.create_virtual_set(target_leaf)
           target_leaf = (set and set.target) or target_leaf
           M.col_move_out(target_leaf, target_leaf.parent, dir)
         else
           local next_node = M.next_node_horizontal(target_leaf, dir)
+          local set = M.create_virtual_set(target_leaf, true)
+
           if next_node then
             if
               target_leaf.parent.type == "row"
@@ -469,22 +490,22 @@ function M.move_win(winid, dir)
             else
               M.col_move_in(target_leaf, next_node, dir)
             end
+          elseif set and set.type == "col" then
+            M.col_move_out(set.target, set, dir)
           elseif outer_parent.type == "col" then
             M.col_move_out(target_leaf, outer_parent, dir)
           end
         end
       else
         -- Vertical
-        local set
         if target_leaf.parent.type == "row" then
-          set = M.create_virtual_set(target_leaf)
-        end
-
-        if set or target_leaf.parent.type == "row" then
+          local set = M.create_virtual_set(target_leaf)
           target_leaf = (set and set.target) or target_leaf
           M.row_move_out(target_leaf, target_leaf.parent, dir)
         else
           local next_node = M.next_node_vertical(target_leaf, dir)
+          local set = M.create_virtual_set(target_leaf, true)
+
           if next_node then
             if
               target_leaf.parent.type == "col"
@@ -497,6 +518,8 @@ function M.move_win(winid, dir)
             else
               M.row_move_in(target_leaf, next_node, dir)
             end
+          elseif set and set.type == "row" then
+            M.row_move_out(set.target, set, dir)
           elseif outer_parent.type == "row" then
             M.row_move_out(target_leaf, outer_parent, dir)
           end

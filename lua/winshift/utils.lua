@@ -197,6 +197,15 @@ function M.clear_prompt()
   vim.cmd("norm! :esc<CR>")
 end
 
+---@class InputCharSpec
+---@field clear_prompt boolean (default: true)
+---@field allow_non_ascii boolean (default: true)
+---@field prompt_hl string (default: nil)
+
+---@param prompt string
+---@param opt InputCharSpec
+---@return string Char
+---@return string Raw
 function M.input_char(prompt, opt)
   opt = vim.tbl_extend("keep", opt or {}, {
     clear_prompt = true,
