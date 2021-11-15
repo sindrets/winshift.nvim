@@ -194,7 +194,8 @@ function M.str_template(str, table)
 end
 
 function M.clear_prompt()
-  vim.cmd("norm! :esc<CR>")
+  vim.api.nvim_echo({ { "" } }, false, {})
+  vim.cmd("redraw")
 end
 
 ---@class InputCharSpec
