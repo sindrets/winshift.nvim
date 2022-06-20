@@ -18,7 +18,7 @@ or vertically respectively.
 
 ## Requirements
 
-- Neovim >=0.5.0
+- Neovim ≥ 0.5.0
 
 ## Installation
 
@@ -48,6 +48,27 @@ require("winshift").setup({
     cursorline = false,
     cursorcolumn = false,
     colorcolumn = "",
+  },
+  keymaps = {
+    disable_defaults = false, -- Disable the default keymaps
+    win_move_mode = {
+      ["h"] = "left",
+      ["j"] = "down",
+      ["k"] = "up",
+      ["l"] = "right",
+      ["H"] = "far_left",
+      ["J"] = "far_down",
+      ["K"] = "far_up",
+      ["L"] = "far_right",
+      ["<left>"] = "left",
+      ["<down>"] = "down",
+      ["<up>"] = "up",
+      ["<right>"] = "right",
+      ["<S-left>"] = "far_left",
+      ["<S-down>"] = "far_down",
+      ["<S-up>"] = "far_up",
+      ["<S-right>"] = "far_right",
+    },
   },
   -- The window picker is used to select a window while swapping windows with
   -- ':WinShift swap'.

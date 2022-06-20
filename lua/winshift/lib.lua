@@ -17,25 +17,6 @@ local win_option_store = {}
 ---@alias VDirection '"up"'|'"down"'
 ---@alias Direction HDirection|VDirection|'"far_left"'|'"far_right"'|'"far_up"'|'"far_down"'
 
-M.key_dir_map = {
-  h = "left",
-  j = "down",
-  k = "up",
-  l = "right",
-  H = "far_left",
-  J = "far_down",
-  K = "far_up",
-  L = "far_right",
-  [utils.raw_key("<left>")] = "left",
-  [utils.raw_key("<down>")] = "down",
-  [utils.raw_key("<up>")] = "up",
-  [utils.raw_key("<right>")] = "right",
-  [utils.raw_key("<S-left>")] = "far_left",
-  [utils.raw_key("<S-down>")] = "far_down",
-  [utils.raw_key("<S-up>")] = "far_up",
-  [utils.raw_key("<S-right>")] = "far_right",
-}
-
 M.dir_move_map = {
   far_left = "H",
   far_down = "J",
@@ -540,6 +521,7 @@ function M.start_move_mode()
   local cur_win = api.nvim_get_current_win()
   local lasthl = vim.wo[cur_win].winhl
   local conf = config.get_config()
+  local key_dir_map = config.get_key_dir_map()
   M.save_win_options(cur_win)
 
   if conf.highlight_moving_win then
@@ -552,7 +534,7 @@ function M.start_move_mode()
     while not (char == "q" or raw == esc) do
       api.nvim_echo({ { "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" } }, false, {})
       char, raw = utils.input_char(nil, { clear_prompt = false, allow_non_ascii = true })
-      local dir = M.key_dir_map[char or raw]
+      local dir = key_dir_map[char or raw]
       if dir then
         M.move_win(cur_win, dir)
       end
