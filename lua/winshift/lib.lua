@@ -4,8 +4,7 @@ local api = vim.api
 local M = {}
 local win_option_store = {}
 
----@class Node
----@type table<integer, Node>
+---@class Node : { [integer]: Node }
 ---@field type '"leaf"'|'"row"'|'"col"'
 ---@field parent Node
 ---@field index integer
@@ -142,7 +141,7 @@ end
 ---Move a row into a target window, replacing the target.
 ---@param row Node
 ---@param target integer Window id
----@param ignore table<integer, boolean>
+---@param ignore? table<integer, boolean>
 function M.move_row(row, target, ignore)
   ignore = ignore or {}
   local opt = { vertical = true, rightbelow = false }
@@ -164,7 +163,7 @@ end
 ---Move a column into a target window, replacing the target.
 ---@param col Node
 ---@param target integer Window id
----@param ignore table<integer, boolean>
+---@param ignore? table<integer, boolean>
 function M.move_col(col, target, ignore)
   ignore = ignore or {}
   local opt = { vertical = false, rightbelow = false }
@@ -391,7 +390,7 @@ function M.pick_window(ignore)
 end
 
 ---@param leaf Node
----@param flatten boolean
+---@param flatten? boolean
 ---@return VirtualNode|nil
 function M.create_virtual_set(leaf, flatten)
   if not leaf.parent then
@@ -628,7 +627,7 @@ end
 function M.restore_win_options(winid)
   for option, _ in pairs(config.get_config().moving_win_options) do
     if win_option_store[winid][option] then
-      utils.set_local(winid, option, win_option_store[winid][option])
+      utils.set_local(winid, { [option] = win_option_store[winid][option] })
     else
       utils.unset_local(winid, option)
     end

@@ -43,13 +43,17 @@ function M.err(msg, schedule)
   M._echo_multiline("[WinShift.nvim] " .. msg, "ErrorMsg", schedule)
 end
 
-function M.no_win_event_call(cb)
-  local last = vim.opt.eventignore._value
-  vim.opt.eventignore = (
-      "WinEnter,WinLeave,WinNew,WinClosed,BufEnter,BufLeave"
-      .. (last ~= "" and "," .. last or "")
-    )
-  local ok, err = pcall(cb)
+---Call the function `f`, ignoring most of the window and buffer related
+---events. The function is called in protected mode.
+---@param f function
+---@return boolean success
+---@return any result Return value
+function M.no_win_event_call(f)
+  local last = vim.o.eventignore
+  vim.opt.eventignore:prepend(
+    "WinEnter,WinLeave,WinNew,WinClosed,BufWinEnter,BufWinLeave,BufEnter,BufLeave"
+  )
+  local ok, err = pcall(f)
   vim.opt.eventignore = last
   return ok, err
 end
@@ -259,59 +263,47 @@ function M.pause(msg)
   )
 end
 
+---@class SetLocalSpec
+---@field method '"set"'|'"remove"'|'"append"'|'"prepend"' Assignment method. (default: "set")
+
+---@class SetLocalListSpec : string[]
+---@field opt SetLocalSpec
+
 ---HACK: workaround for inconsistent behavior from `vim.opt_local`.
 ---@see [Neovim issue](https://github.com/neovim/neovim/issues/14670)
 ---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).
----`opt` fields:
----   @tfield method '"set"'|'"remove"'|'"append"'|'"prepend"' Assignment method. (default: "set")
----@overload fun(winids: number[]|number, option: string, value: string[]|string|boolean, opt?: any)
----@overload fun(winids: number[]|number, map: table<string, string[]|string|boolean>, opt?: table)
-function M.set_local(winids, x, y, z)
+---@param option_map table<string, SetLocalListSpec|string|boolean>
+---@param opt? SetLocalSpec
+function M.set_local(winids, option_map, opt)
   if type(winids) ~= "table" then
     winids = { winids }
-  end
-
-  local map, opt
-  if y == nil or type(y) == "table" then
-    map = x
-    opt = y
-  else
-    map = { [x] = y }
-    opt = z
   end
 
   opt = vim.tbl_extend("keep", opt or {}, { method = "set" })
 
   local cmd
-  local ok, err = M.no_win_event_call(function()
-    for _, id in ipairs(winids) do
-      api.nvim_win_call(id, function()
-        for option, value in pairs(map) do
+  for _, id in ipairs(winids) do
+    api.nvim_win_call(id, function()
+      for option, value in pairs(option_map) do
+        if type(value) == "boolean" then
+          cmd = string.format("setl %s%s", value and "" or "no", option)
+        else
+          ---@type SetLocalSpec
           local o = opt
-
-          if type(value) == "boolean" then
-            cmd = string.format("setl %s%s", value and "" or "no", option)
-          else
-            if type(value) == "table" then
-              ---@diagnostic disable-next-line: undefined-field
-              o = vim.tbl_extend("force", opt, value.opt or {})
-              value = table.concat(value, ",")
-            end
-
-            cmd = M.str_template(
-              setlocal_opr_templates[o.method],
-              { option = option, value = tostring(value):gsub("'", "''") }
-            )
+          if type(value) == "table" then
+            o = vim.tbl_extend("force", opt, value.opt or {})
+            value = table.concat(value, ",")
           end
 
-          vim.cmd(cmd)
+          cmd = M.str_template(
+            setlocal_opr_templates[o.method],
+            { option = option, value = tostring(value):gsub("'", "''") }
+          )
         end
-      end)
-    end
-  end)
 
-  if not ok then
-    error(err)
+        vim.cmd(cmd)
+      end
+    end)
   end
 end
 
@@ -322,13 +314,11 @@ function M.unset_local(winids, option)
     winids = { winids }
   end
 
-  M.no_win_event_call(function()
-    for _, id in ipairs(winids) do
-      api.nvim_win_call(id, function()
-        vim.cmd(string.format("set %s<", option))
-      end)
-    end
-  end)
+  for _, id in ipairs(winids) do
+    api.nvim_win_call(id, function()
+      vim.cmd(string.format("set %s<", option))
+    end)
+  end
 end
 
 return M
