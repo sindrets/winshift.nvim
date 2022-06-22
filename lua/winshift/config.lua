@@ -32,12 +32,28 @@ M.defaults = {
       ["<S-right>"] = "far_right",
     },
   },
-  window_picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
-  window_picker_ignore = {
-    filetype = {},
-    buftype = {},
-    bufname = {},
-  },
+  ---A function that should prompt the user to select a window.
+  ---
+  ---The window picker is used to select a window while swapping windows with
+  ---`:WinShift swap`.
+  ---@return integer? winid # Either the selected window ID, or `nil` to
+  ---   indicate that the user cancelled / gave an invalid selection.
+  window_picker = function()
+    return require("winshift.lib").pick_window({
+      picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+      filter_rules = {
+        cur_win = true,
+        floats = true,
+        filetype = {},
+        buftype = {},
+        bufname = {},
+      },
+      ---A function used to filter the list of selectable windows.
+      ---@param winids integer[] # The list of selectable window IDs.
+      ---@return integer[] filtered # The filtered list of window IDs.
+      filter_func = nil,
+    })
+  end,
 }
 -- stylua: ignore end
 
@@ -64,6 +80,17 @@ function M.setup(user_config)
   M._config = vim.tbl_deep_extend("force", M._config, user_config)
 
   M._config.moving_win_options = user_config.moving_win_options or M._config.moving_win_options
+
+  --#region DEPRECATION NOTICES
+
+  if M._config.window_picker_chars or M._config.window_picker_ignore then
+    utils.warn(table.concat({
+      "'window_picker_chars' and 'window_picker_ignore' has been deprecated!",
+      " See ':h winshift.changelog-11' for more information.",
+    }, ""))
+  end
+
+  --#endregion
 
   if M._config.keymaps.disable_defaults then
     for name, _ in pairs(M._config.keymaps) do
