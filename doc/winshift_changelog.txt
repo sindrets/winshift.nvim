@@ -1,0 +1,63 @@
+================================================================================
+                                                *winshift.changelog*
+
+CHANGELOG
+
+                                                *winshift.changelog-11*
+
+PR: https://github.com/sindrets/winshift.nvim/pull/11
+
+The configuration for the window picker has changed as a result of the
+function now being fully configurable. If you have previously configured
+options for the window picker, move them into the options passed to the
+`pick_window` function:
+
+        Before: ~
+>
+                require("winshift").setup({
+                  -- ...
+                  window_picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+                  window_picker_ignore = {
+                    filetype = {
+                      "NvimTree",
+                    },
+                    buftype = {
+                      "terminal",
+                      "quickfix",
+                    },
+                    bufname = {
+                      [[.*foo/bar/baz\.qux]]
+                    },
+                  },
+                })
+<
+        After: ~
+>
+                require("winshift").setup({
+                  -- ...
+                  window_picker = function()
+                    return require("winshift.lib").pick_window({
+                      picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+                      filter_rules = {
+                        cur_win = true,
+                        floats = true,
+                        filetype = {
+                          "NvimTree",
+                        },
+                        buftype = {
+                          "terminal",
+                          "quickfix",
+                        },
+                        bufname = {
+                          [[.*foo/bar/baz\.qux]]
+                        },
+                      },
+                    })
+                  end,
+                })
+<
+
+See |winshift-config| more information about how to configure the window
+picker.
+
+ vim:tw=78:ts=8:ft=help:norl:

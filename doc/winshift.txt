@@ -1,4 +1,4 @@
-*winshift.nvim*  WinShift.nvim
+*winshift.txt*  WinShift.nvim
 
 Rearrange your windows with ease.
 
@@ -6,12 +6,12 @@ Author: Sindre T. Strøm
 
 ==============================================================================
 
-INTRODUCTION                                           *winshift-introduction*
+INTRODUCTION                                    *winshift.nvim* *winshift*
 
 WinShift lets you move windows, not only around each other, but also in and
 out of rows and columns.
 
-USAGE                                         *Win-Move-mode* *winshift-usage*
+USAGE                                           *Win-Move-mode* *winshift-usage*
 
 Enter Win-Move mode by calling `:WinShift`. This will target your current
 window for moving. You can move the window either by using |hjkl| or the arrow
@@ -19,7 +19,7 @@ keys. You can move the window to any of the far ends of the viewport by
 pressing one of `HJKL`, or shift + any arrow key. Exit Win-Move mode by
 pressing `q` / `<esc>` / `<C-c>`.
 
-CONFIGURATION                                                *winshift-config*
+CONFIGURATION                                   *winshift-config*
 
 Example configuration with default settings:
 >
@@ -56,12 +56,37 @@ Example configuration with default settings:
           ["<S-right>"] = "far_right",
         },
       },
+      ---A function that should prompt the user to select a window.
+      ---
+      ---The window picker is used to select a window while swapping windows with
+      ---`:WinShift swap`.
+      ---@return integer? winid # Either the selected window ID, or `nil` to
+      ---   indicate that the user cancelled / gave an invalid selection.
+      window_picker = function()
+        return require("winshift.lib").pick_window({
+          -- A string of chars used as identifiers by the window picker.
+          picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+          filter_rules = {
+            -- This table allows you to indicate to the window picker that a window
+            -- should be ignored if its buffer matches any of the following criteria.
+            cur_win = true, -- Filter out the current window
+            floats = true,  -- Filter out floating windows
+            filetype = {},  -- List of ignored file types
+            buftype = {},   -- List of ignored buftypes
+            bufname = {},   -- List of vim regex patterns matching ignored buffer names
+          },
+          ---A function used to filter the list of selectable windows.
+          ---@param winids integer[] # The list of selectable window IDs.
+          ---@return integer[] filtered # The filtered list of window IDs.
+          filter_func = nil,
+        })
+      end,
     })
 <
 
-COMMANDS                                                   *winshift-commands*
+COMMANDS                                        *winshift-commands*
 
-                                                                   *:WinShift*
+                                                *:WinShift*
 :WinShift [direction]
                         When called without [direction]: starts Win-Move mode
                         targeting the current window for moving. For how to
@@ -82,7 +107,7 @@ COMMANDS                                                   *winshift-commands*
                         pressing the character displayed in the statusline of
                         the target window. The input is case-insensitive.
 
-CAVEATS                                                     *winshift-caveats*
+CAVEATS                                         *winshift-caveats*
 
 Moving through windows with 'winfixwidth' and / or 'winfixheight' can be a bit
 wonky. It will work, but it can be a bit hard to follow the movement, and the
