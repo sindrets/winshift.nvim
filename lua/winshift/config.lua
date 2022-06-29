@@ -63,7 +63,12 @@ function M.get_key_dir_map()
   local t = {}
 
   for lhs, rhs in pairs(M._config.keymaps.win_move_mode) do
-    t[utils.raw_key(lhs)] = rhs
+    if lhs:match("%b<>") then
+      -- Get raw key code for special keys
+      lhs = utils.raw_key(lhs)
+    end
+
+    t[lhs] = rhs
   end
 
   return t
