@@ -346,25 +346,20 @@ function M.pick_window(opt)
   -- Setup UI
   for _, id in ipairs(selectable) do
     local char = chars:sub(i, i)
-    local ok_status, statusline = pcall(api.nvim_win_get_option, id, "statusline")
-    local ok_hl, winhl = pcall(api.nvim_win_get_option, id, "winhl")
 
-    win_opts[id] = {
-      statusline = ok_status and statusline or "",
-      winhl = ok_hl and winhl or ""
-    }
     win_map[char] = id
+    win_opts[id] = {
+      statusline = vim.wo[id].statusline,
+      winhl = vim.wo[id].winhl,
+    }
 
-    utils.set_local(
-      id,
-      {
-        statusline = "%=" .. char .. "%=",
-        winhl = {
-          "StatusLine:WinShiftWindowPicker,StatusLineNC:WinShiftWindowPicker",
-          opt = { method = "append" },
-        },
-      }
-    )
+    utils.set_local(id, {
+      statusline = "%=" .. char .. "%=",
+      winhl = {
+        "StatusLine:WinShiftWindowPicker,StatusLineNC:WinShiftWindowPicker",
+        opt = { method = "append" },
+      },
+    })
 
     i = i + 1
     if i > #chars then break end
@@ -379,9 +374,7 @@ function M.pick_window(opt)
 
   -- Restore window options
   for _, id in ipairs(selectable) do
-    for option, value in pairs(win_opts[id]) do
-      api.nvim_win_set_option(id, option, value)
-    end
+    utils.set_local(id, win_opts[id])
   end
 
   vim.o.laststatus = laststatus
