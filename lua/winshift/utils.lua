@@ -1,14 +1,7 @@
 local api = vim.api
 local M = {}
 
----@alias vector any[]
-
-local setlocal_opr_templates = {
-  set = [[setl ${option}=${value}]],
-  remove = [[exe 'setl ${option}-=${value}']],
-  append = [[exe 'setl ${option}=' . (&${option} == "" ? "" : &${option} . ",") . '${value}']],
-  prepend = [[exe 'setl ${option}=${value}' . (&${option} == "" ? "" : "," . &${option})]],
-}
+---@alias vector<T> T[]
 
 function M._echo_multiline(msg, hl, schedule)
   if schedule then
@@ -50,6 +43,7 @@ end
 ---@return any result Return value
 function M.no_win_event_call(f)
   local last = vim.o.eventignore
+  ---@diagnostic disable-next-line: undefined-field
   vim.opt.eventignore:prepend(
     "WinEnter,WinLeave,WinNew,WinClosed,BufWinEnter,BufWinLeave,BufEnter,BufLeave"
   )
@@ -237,6 +231,8 @@ function M.input_char(prompt, opt)
 
   local s = type(c) == "number" and vim.fn.nr2char(c) or nil
   local raw = type(c) == "number" and s or c
+
+  ---@diagnostic disable-next-line: return-type-mismatch
   return s, raw
 end
 
@@ -263,45 +259,82 @@ function M.pause(msg)
   )
 end
 
----@class SetLocalSpec
+---Map of options that accept comma separated, list-like values, but don't work
+---correctly with Option:set(), Option:append(), Option:prepend(), and
+---Option:remove() (seemingly for legacy reasons).
+---WARN: This map is incomplete!
+local list_like_options = {
+  winhighlight = true,
+  listchars = true,
+  fillchars = true,
+}
+
+---@class utils.set_local.Opt
 ---@field method '"set"'|'"remove"'|'"append"'|'"prepend"' Assignment method. (default: "set")
 
----@class SetLocalListSpec : string[]
----@field opt SetLocalSpec
+---@class utils.set_local.ListSpec : string[]
+---@field opt utils.set_local.Opt
 
----HACK: workaround for inconsistent behavior from `vim.opt_local`.
----@see [Neovim issue](https://github.com/neovim/neovim/issues/14670)
+---@alias WindowOptions table<string, boolean|integer|string|utils.set_local.ListSpec>
+
 ---@param winids number[]|number Either a list of winids, or a single winid (0 for current window).
----@param option_map table<string, SetLocalListSpec|string|boolean>
----@param opt? SetLocalSpec
+---@param option_map WindowOptions
+---@param opt? utils.set_local.Opt
 function M.set_local(winids, option_map, opt)
   if type(winids) ~= "table" then
     winids = { winids }
   end
 
-  opt = vim.tbl_extend("keep", opt or {}, { method = "set" })
+  opt = vim.tbl_extend("keep", opt or {}, { method = "set" }) --[[@as table ]]
 
-  local cmd
   for _, id in ipairs(winids) do
     api.nvim_win_call(id, function()
       for option, value in pairs(option_map) do
-        if type(value) == "boolean" then
-          cmd = string.format("setl %s%s", value and "" or "no", option)
-        else
-          ---@type SetLocalSpec
-          local o = opt
-          if type(value) == "table" then
-            o = vim.tbl_extend("force", opt, value.opt or {})
-            value = table.concat(value, ",")
+        local o = opt
+        local fullname = api.nvim_get_option_info(option).name
+        local is_list_like = list_like_options[fullname]
+        local cur_value = vim.o[fullname]
+
+        if type(value) == "table" then
+          if value.opt then
+            o = vim.tbl_extend("force", opt, value.opt) --[[@as table ]]
           end
 
-          cmd = M.str_template(
-            setlocal_opr_templates[o.method],
-            { option = option, value = tostring(value):gsub("'", "''") }
-          )
+          if is_list_like then
+            value = table.concat(value, ",")
+          end
         end
 
-        vim.cmd(cmd)
+        if o.method == "set" then
+          vim.opt_local[option] = value
+
+        else
+          if o.method == "remove" then
+            if is_list_like then
+              vim.opt_local[fullname] = cur_value:gsub(",?" .. vim.pesc(value), "")
+            else
+              vim.opt_local[fullname]:remove(value)
+            end
+
+          elseif o.method == "append" then
+            if is_list_like then
+              vim.opt_local[fullname] = ("%s%s"):format(cur_value ~= "" and cur_value .. ",", value)
+            else
+              vim.opt_local[fullname]:append(value)
+            end
+
+          elseif o.method == "prepend" then
+            if is_list_like then
+              vim.opt_local[fullname] = ("%s%s%s"):format(
+                value,
+                cur_value ~= "" and "," or "",
+                cur_value
+              )
+            else
+              vim.opt_local[fullname]:prepend(value)
+            end
+          end
+        end
       end
     end)
   end
@@ -316,7 +349,7 @@ function M.unset_local(winids, option)
 
   for _, id in ipairs(winids) do
     api.nvim_win_call(id, function()
-      vim.cmd(string.format("set %s<", option))
+      vim.opt_local[option] = nil
     end)
   end
 end

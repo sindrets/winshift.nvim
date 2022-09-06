@@ -18,7 +18,7 @@ or vertically respectively.
 
 ## Requirements
 
-- Neovim ≥ 0.5.0
+- Neovim ≥ 0.7.2
 
 ## Installation
 

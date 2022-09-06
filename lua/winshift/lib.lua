@@ -547,10 +547,13 @@ function M.start_move_mode()
       api.nvim_echo({ { "-- WIN MOVE MODE -- press 'q' to exit", "ModeMsg" } }, false, {})
       char, raw = utils.input_char(nil, { clear_prompt = false, allow_non_ascii = true })
       local dir = key_dir_map[char or raw]
-      if dir then
-        M.move_win(cur_win, dir)
-      end
+
+      if dir then M.move_win(cur_win, dir) end
+
       vim.cmd("redraw")
+
+      api.nvim_exec_autocmds({ "WinScrolled" }, { modeline = false })
+      vim.schedule(function() vim.cmd("redraw") end)
     end
   end)
 
