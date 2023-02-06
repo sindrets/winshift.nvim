@@ -305,6 +305,9 @@ function M.set_local(winids, option_map, opt)
           end
         end
 
+        local eventignore = vim.opt.eventignore:get()
+        vim.opt.eventignore:append('OptionSet')
+
         if o.method == "set" then
           vim.opt_local[option] = value
 
@@ -338,6 +341,7 @@ function M.set_local(winids, option_map, opt)
             end
           end
         end
+        vim.opt.eventignore = eventignore
       end
     end)
   end
