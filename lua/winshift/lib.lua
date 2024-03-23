@@ -90,9 +90,21 @@ function M.find_leaf(tree, winid)
   return recurse(tree)
 end
 
+local function get_window_dimensions(winid)
+  return { width = api.nvim_win_get_width(winid), height = api.nvim_win_get_height(winid) }
+end
+
+local function set_window_dimensions(winid, dimensions)
+  api.nvim_win_set_width(winid, dimensions.width)
+  api.nvim_win_set_height(winid, dimensions.height)
+end
+
 ---@param a Node
 ---@param b Node
 function M.swap_leaves(a, b)
+  local dimensions_a = get_window_dimensions(a.winid)
+  local dimensions_b = get_window_dimensions(b.winid)
+
   vim.cmd(
     string.format(
       "noautocmd keepjumps %dwindo belowright %s",
@@ -102,6 +114,7 @@ function M.swap_leaves(a, b)
   )
   local temp_a = api.nvim_get_current_win()
   local opt_a = { vertical = a.parent.type == "col", rightbelow = false }
+
 
   vim.cmd(
     string.format(
@@ -115,8 +128,13 @@ function M.swap_leaves(a, b)
 
   vim.fn.win_splitmove(a.winid, temp_b, opt_b)
   vim.fn.win_splitmove(b.winid, temp_a, opt_a)
+
+
   api.nvim_win_close(temp_a, true)
   api.nvim_win_close(temp_b, true)
+
+  set_window_dimensions(a.winid, dimensions_b)
+  set_window_dimensions(b.winid, dimensions_a)
 end
 
 ---Move a row into a target window, replacing the target.
@@ -657,3 +675,4 @@ function M.highlight_win(winid)
 end
 
 return M
+
