@@ -115,7 +115,6 @@ function M.swap_leaves(a, b)
   local temp_a = api.nvim_get_current_win()
   local opt_a = { vertical = a.parent.type == "col", rightbelow = false }
 
-
   vim.cmd(
     string.format(
       "noautocmd keepjumps %dwindo belowright %s",
@@ -128,7 +127,6 @@ function M.swap_leaves(a, b)
 
   vim.fn.win_splitmove(a.winid, temp_b, opt_b)
   vim.fn.win_splitmove(b.winid, temp_a, opt_a)
-
 
   api.nvim_win_close(temp_a, true)
   api.nvim_win_close(temp_b, true)
@@ -675,4 +673,3 @@ function M.highlight_win(winid)
 end
 
 return M
-
